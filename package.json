@@ -14,5 +14,8 @@
     "log-timestamp": "^0.3.0",
     "mysql": "^2.18.1",
     "string-similarity-js": "^2.1.4"
+  },
+  "devDependencies": {
+    "eslint": "^8.53.0"
   }
 }
