@@ -1,7 +1,7 @@
 const fs = require('fs');
-const Sigur = require('./sigur.js');
-const umed = require('./umed.js');
-const iiko = require('./iiko.js');
+const Sigur = require('./lib/sigur.js');
+const umed = require('./lib/umed.js');
+const iiko = require('./lib/iiko.js');
 const dotenv = require('dotenv');
 const { stringSimilarity } = require('string-similarity-js');
 require('log-timestamp');
