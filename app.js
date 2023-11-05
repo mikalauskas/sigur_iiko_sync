@@ -19,12 +19,14 @@ const iikoCategoryId = process.env.IIKO_STUDENT_CATEGORY;
 const sigur = new Sigur(sigurDbHost, SigurDbPort, SigurDbUser, SigurDbPassword, SigurDbName);
 
 const dumpToJsonFile = (filename, data) => {
-	console.log(`Writing data to ${filename}`);
-	fs.writeFile(filename, "\ufeff" + JSON.stringify(data, null, 4).replace(/\n/g, "\r\n"), err => {
-		if (err) {
-			console.error(err);
-		}
-	});
+	if (data) {
+		console.log(`Writing data to ${filename}`);
+		fs.writeFile(filename, "\ufeff" + JSON.stringify(data, null, 4).replace(/\n/g, "\r\n"), err => {
+			if (err) {
+				console.error(err);
+			}
+		});
+	}
 };
 
 // Compare cards of iiko users
@@ -37,7 +39,7 @@ async function compareCards(token, orgId, fio, phone, customerId, userCards, new
 			iiko.addCard(token, orgId, customerId, newCard);
 		}
 	}
-} 
+}
 
 // Compare Sigur users and Umed users
 async function compareUsers(user1, user2, token, orgId) {
@@ -61,7 +63,7 @@ async function compareUsers(user1, user2, token, orgId) {
 						console.log(`Adding user ${user1[i]['LOGIN']} to student category`);
 						let userInCategory = await iiko.addUserToCategory(token, orgId, customerId['id'], iikoCategoryId);
 						if (userInCategory) console.log(`User ${user1[i]['LOGIN']} added to category`);
-						continue;	
+						continue;
 					}
 					// compare cards and add/remove
 					compareCards(token, orgId, fio, user1[i]['LOGIN'], res.id, res.cards, user2[j]['CODEKEY']);
@@ -81,13 +83,14 @@ async function syncUsers(sigurUsers) {
 	try {
 		console.log('Sync job started');
 		const umedUsers = await umed.getStudents(umedToken);
-		console.log(`Total users in umed: ${umedUsers.length}`)
+		console.log(`Total users in Umed: ${umedUsers.length}`)
+		console.log(`Total users in Sigur: ${sigurUsers.length}`);
 
 		const token = await iiko.getToken(iikoApi);
 		const orgId = await iiko.getOrgId(token);
 
 		console.log('Comparing user between Sigur and Umed');
-		const compareResult =  await compareUsers(umedUsers, sigurUsers, token, orgId);
+		const compareResult = await compareUsers(umedUsers, sigurUsers, token, orgId);
 		console.log('Comparing job finished');
 		dumpToJsonFile('iikoUsers.json', compareResult);
 	} catch (error) {
@@ -96,7 +99,6 @@ async function syncUsers(sigurUsers) {
 }
 
 sigur.getPersonal(sigurUsers => {
-	console.log(`Total users in sigur: ${sigurUsers.length}`);
 	syncUsers(sigurUsers);
 	dumpToJsonFile('personal.json', sigurUsers);
 });
