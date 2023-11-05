@@ -20,7 +20,7 @@ const sigur = new Sigur(sigurDbHost, SigurDbPort, SigurDbUser, SigurDbPassword, 
 
 const dumpToJsonFile = (filename, data) => {
 	console.log(`Writing data to ${filename}`);
-	fs.writeFile(filename, JSON.stringify(data, null, 4), err => {
+	fs.writeFile(filename, "\ufeff" + JSON.stringify(data, null, 4).replace(/\n/g, "\r\n"), err => {
 		if (err) {
 			console.error(err);
 		}
@@ -50,6 +50,7 @@ async function compareUsers(user1, user2, token, orgId) {
 			for (let j in user2) {
 				let compare = stringSimilarity(fio, user2[j]['NAME'])
 				if (compare > 0.95) {
+					// Search user in iiko
 					let res = await iiko.getCustomerInfo(token, orgId, user1[i]['LOGIN']);
 					if (res.message) {
 						// Create user in iiko
