@@ -39,7 +39,7 @@ async function compareCards(token, orgId, fio, phone, customerId, userCards, new
 			iiko.addCard(token, orgId, customerId, newCard);
 		}
 	}
-} 
+}
 
 // Compare Sigur users and Umed users
 async function compareUsers(user1, user2, token, orgId) {
@@ -63,7 +63,7 @@ async function compareUsers(user1, user2, token, orgId) {
 						console.log(`Adding user ${user1[i]['LOGIN']} to student category`);
 						let userInCategory = await iiko.addUserToCategory(token, orgId, customerId['id'], iikoCategoryId);
 						if (userInCategory) console.log(`User ${user1[i]['LOGIN']} added to category`);
-						continue;	
+						continue;
 					}
 					// compare cards and add/remove
 					compareCards(token, orgId, fio, user1[i]['LOGIN'], res.id, res.cards, user2[j]['CODEKEY']);
@@ -85,11 +85,11 @@ async function syncUsers(sigurUsers) {
 		const umedUsers = await umed.getStudents(umedToken);
 		console.log(`Total users in umed: ${umedUsers.length}`);
 
-        const token = await iiko.getToken(iikoApi);
-        const orgId = await iiko.getOrgId(token);
+		const token = await iiko.getToken(iikoApi);
+		const orgId = await iiko.getOrgId(token);
 
 		console.log('Comparing user between Sigur and Umed');
-		const compareResult =  await compareUsers(umedUsers, sigurUsers, token, orgId);
+		const compareResult = await compareUsers(umedUsers, sigurUsers, token, orgId);
 		console.log('Comparing job finished');
 		dumpToJsonFile('iikoUsers.json', compareResult);
 	} catch (error) {
