@@ -7,24 +7,16 @@ const { stringSimilarity } = require('string-similarity-js');
 require('log-timestamp');
 dotenv.config();
 
-/*
-
-todo:
-
-change fio in sigur db, add phone
-
-*/
-
-const host = process.env.SIGUR_HOST;
-const port = process.env.SIGUR_PORT;
-const user = process.env.SIGUR_USER;
-const password = process.env.SIGUR_PASSWORd;
-const database = process.env.SIGUR_DATABASE;
+const sigurDbHost = process.env.SIGUR_HOST;
+const SigurDbPort = process.env.SIGUR_PORT;
+const SigurDbUser = process.env.SIGUR_USER;
+const SigurDbPassword = process.env.SIGUR_PASSWORd;
+const SigurDbName = process.env.SIGUR_DATABASE;
 const umedToken = process.env.UMED_TOKEN;
 const iikoApi = process.env.IIKO_API;
 const iikoCategoryId = process.env.IIKO_STUDENT_CATEGORY;
 
-const sigur = new Sigur(host, port, user, password, database);
+const sigur = new Sigur(sigurDbHost, SigurDbPort, SigurDbUser, SigurDbPassword, SigurDbName);
 
 const dumpToJsonFile = (filename, data) => {
 	console.log(`Writing data to ${filename}`);
