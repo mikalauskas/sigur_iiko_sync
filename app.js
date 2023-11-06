@@ -57,22 +57,27 @@ async function compareUsers(user1, user2, token, orgId) {
 			let compare = stringSimilarity(fio, user2[j]['NAME'])
 			if (compare > 0.95) {
 				// Search user in iiko
-				let res = await iiko.getCustomerInfo(token, orgId, user1[i]['LOGIN']);
-				if (res.message) {
-					// Create user in iiko
-					console.log(res.message);
-					console.log(`Creating user ${user1[i]['LOGIN']}`);
-					let customerId = await iiko.createUser(token, orgId, user1[i]['LOGIN'], user1[i]['NAME'], user1[i]['LAST_NAME'], user1[i]['SECOND_NAME'], user2[j]['CODEKEY']);
-					console.log(`User id: ${customerId['id']}`);
-					console.log(`Adding user ${user1[i]['LOGIN']} to student category`);
-					let userInCategory = await iiko.addUserToCategory(token, orgId, customerId['id'], iikoCategoryId);
-					if (userInCategory) console.log(`User ${user1[i]['LOGIN']} added to category`);
+				try {
+					let res = await iiko.getCustomerInfo(token, orgId, user1[i]['LOGIN']);
+					if (res.message) {
+						// Create user in iiko
+						console.log(res.message);
+						console.log(`Creating user ${user1[i]['LOGIN']}`);
+						let customerId = await iiko.createUser(token, orgId, user1[i]['LOGIN'], user1[i]['NAME'], user1[i]['LAST_NAME'], user1[i]['SECOND_NAME'], user2[j]['CODEKEY']);
+						console.log(`User id: ${customerId['id']}`);
+						console.log(`Adding user ${user1[i]['LOGIN']} to student category`);
+						let userInCategory = await iiko.addUserToCategory(token, orgId, customerId['id'], iikoCategoryId);
+						if (userInCategory) console.log(`User ${user1[i]['LOGIN']} added to category`);
+						continue;
+					}
+
+					// compare cards and add/remove
+					compareCards(token, orgId, fio, user1[i]['LOGIN'], res.id, res.cards, user2[j]['CODEKEY']);
+					foundUsersinIiko.push(res);
 					continue;
+				} catch (error) {
+					console.log(error);
 				}
-				// compare cards and add/remove
-				compareCards(token, orgId, fio, user1[i]['LOGIN'], res.id, res.cards, user2[j]['CODEKEY']);
-				foundUsersinIiko.push(res);
-				continue;
 			}
 		}
 	}
@@ -98,7 +103,7 @@ async function syncUsers(sigurUsers) {
 	}
 }
 
-sigur.getPersonal(sigurUsers => {
+sigur.getPersonal('%туден%', sigurUsers => {
 	console.log(`Total users in sigur: ${sigurUsers.length}`);
 	syncUsers(sigurUsers);
 	dumpToJsonFile('personal.json', sigurUsers);
