@@ -38,7 +38,7 @@ async function compareCards(token, orgId, fio, phone, customerId, userCards, new
 			if (userCards[i].number !== newCard) {
 				console.log(`User: ${fio} (${phone}) current card: ${userCards[i].number}, newcard: ${newCard}`);
 				iiko.removeCard(token, orgId, customerId, userCards[i].number);
-				
+
 			}
 		}
 	} else {
@@ -48,40 +48,36 @@ async function compareCards(token, orgId, fio, phone, customerId, userCards, new
 
 // Compare Sigur users and Umed users
 async function compareUsers(user1, user2, token, orgId) {
-	try {
-		console.log('Comparing job started');
-		let foundUsersinIiko = [];
-		let fio = undefined;
-		for (let i in user1) {
-			fio = user1[i]['LAST_NAME'] + ' ' + user1[i]['NAME'] + ' ' + user1[i]['SECOND_NAME'];
-			for (let j in user2) {
-				let compare = stringSimilarity(fio, user2[j]['NAME'])
-				if (compare > 0.95) {
-					// Search user in iiko
-					let res = await iiko.getCustomerInfo(token, orgId, user1[i]['LOGIN']);
-					if (res.message) {
-						// Create user in iiko
-						console.log(res.message);
-						console.log(`Creating user ${user1[i]['LOGIN']}`);
-						let customerId = await iiko.createUser(token, orgId, user1[i]['LOGIN'], user1[i]['NAME'], user1[i]['LAST_NAME'], user1[i]['SECOND_NAME'], user2[j]['CODEKEY']);
-						console.log(`User id: ${customerId['id']}`);
-						console.log(`Adding user ${user1[i]['LOGIN']} to student category`);
-						let userInCategory = await iiko.addUserToCategory(token, orgId, customerId['id'], iikoCategoryId);
-						if (userInCategory) console.log(`User ${user1[i]['LOGIN']} added to category`);
-						continue;
-					}
-					// compare cards and add/remove
-					compareCards(token, orgId, fio, user1[i]['LOGIN'], res.id, res.cards, user2[j]['CODEKEY']);
-					foundUsersinIiko.push(res);
+	console.log('Comparing job started');
+	let foundUsersinIiko = [];
+	let fio = undefined;
+	for (let i in user1) {
+		fio = user1[i]['LAST_NAME'] + ' ' + user1[i]['NAME'] + ' ' + user1[i]['SECOND_NAME'];
+		for (let j in user2) {
+			let compare = stringSimilarity(fio, user2[j]['NAME'])
+			if (compare > 0.95) {
+				// Search user in iiko
+				let res = await iiko.getCustomerInfo(token, orgId, user1[i]['LOGIN']);
+				if (res.message) {
+					// Create user in iiko
+					console.log(res.message);
+					console.log(`Creating user ${user1[i]['LOGIN']}`);
+					let customerId = await iiko.createUser(token, orgId, user1[i]['LOGIN'], user1[i]['NAME'], user1[i]['LAST_NAME'], user1[i]['SECOND_NAME'], user2[j]['CODEKEY']);
+					console.log(`User id: ${customerId['id']}`);
+					console.log(`Adding user ${user1[i]['LOGIN']} to student category`);
+					let userInCategory = await iiko.addUserToCategory(token, orgId, customerId['id'], iikoCategoryId);
+					if (userInCategory) console.log(`User ${user1[i]['LOGIN']} added to category`);
 					continue;
 				}
+				// compare cards and add/remove
+				compareCards(token, orgId, fio, user1[i]['LOGIN'], res.id, res.cards, user2[j]['CODEKEY']);
+				foundUsersinIiko.push(res);
+				continue;
 			}
 		}
-		console.log(`Found users in iiko db: ${foundUsersinIiko.length}`);
-		return foundUsersinIiko;
-	} catch (error) {
-		console.log(error);
 	}
+	console.log(`Found users in iiko db: ${foundUsersinIiko.length}`);
+	return foundUsersinIiko;
 }
 
 async function syncUsers(sigurUsers) {
