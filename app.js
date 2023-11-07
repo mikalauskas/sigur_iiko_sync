@@ -32,17 +32,13 @@ const dumpToJsonFile = (filename, data) => {
 // Compare cards of iiko users
 // Add a new card, remove old cards
 async function compareCards(token, orgId, fio, phone, customerId, userCards, newCard) {
-	const findNewCard = (el) => el.number === newCard;
-	if (findNewCard(userCards) >= 0) {
-		for (let i in userCards) {
-			if (userCards[i].number !== newCard) {
-				console.log(`User: ${fio} (${phone}) current card: ${userCards[i].number}, newcard: ${newCard}`);
-				iiko.removeCard(token, orgId, customerId, userCards[i].number);
+	iiko.addCard(token, orgId, customerId, newCard);
+	for (let i in userCards) {
+		if (userCards[i].number !== newCard) {
+			console.log(`User: ${fio} (${phone}) current card: ${userCards[i].number}, newcard: ${newCard}`);
+			iiko.removeCard(token, orgId, customerId, userCards[i].number);
 
-			}
 		}
-	} else {
-		iiko.addCard(token, orgId, customerId, newCard);
 	}
 }
 
