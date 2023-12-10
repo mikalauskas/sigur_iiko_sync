@@ -43,37 +43,45 @@ async function compareCards(token, orgId, fio, phone, customerId, userCards, new
 }
 
 // Compare Sigur users and Umed users
-async function compareUsers(user1, user2, token, orgId) {
+async function compareUsers(umedUsers, sigurUsers, token, orgId) {
     console.log('Comparing job started');
     let foundUsersinIiko = [];
-    let fio = undefined;
-    for (let i in user1) {
-        fio = user1[i]['LAST_NAME'] + ' ' + user1[i]['NAME'] + ' ' + user1[i]['SECOND_NAME'];
-        for (let j in user2) {
-            let compare = stringSimilarity(fio, user2[j]['NAME'])
+    let fioUmed,
+        fioSigur,
+        firstNameUmed,
+        lastNameUmed,
+        secondNameUmed,
+        loginUmed,
+        codeKeySigur = undefined;
+
+    for (let i in umedUsers) {
+        firstNameUmed = umedUsers[i]['NAME'];
+        lastNameUmed = umedUsers[i]['LAST_NAME'];
+        secondNameUmed = umedUsers[i]['SECOND_NAME'];
+        fioUmed = lastNameUmed + ' ' + firstNameUmed + ' ' + secondNameUmed;
+        loginUmed = umedUsers[i]['LOGIN'];
+        for (let j in sigurUsers) {
+            fioSigur = sigurUsers[j]['NAME'];
+            codeKeySigur = sigurUsers[j]['CODEKEY'];
+            let compare = stringSimilarity(fioUmed, fioSigur)
             if (compare > 0.95) {
                 // Search user in iiko
-                try {
-                    let res = await iiko.getCustomerInfo(token, orgId, user1[i]['LOGIN']);
-                    if (res.message) {
-                        // Create user in iiko
-                        console.log(res.message);
-                        console.log(`Creating user ${user1[i]['LOGIN']}`);
-                        let customerId = await iiko.createUser(token, orgId, user1[i]['LOGIN'], user1[i]['NAME'], user1[i]['LAST_NAME'], user1[i]['SECOND_NAME'], user2[j]['CODEKEY']);
-                        console.log(`User id: ${customerId['id']}`);
-                        console.log(`Adding user ${user1[i]['LOGIN']} to student category`);
-                        let userInCategory = await iiko.addUserToCategory(token, orgId, customerId['id'], iikoCategoryId);
-                        if (userInCategory) console.log(`User ${user1[i]['LOGIN']} added to category`);
-                        continue;
-                    }
-
-                    // compare cards and add/remove
-                    compareCards(token, orgId, fio, user1[i]['LOGIN'], res.id, res.cards, user2[j]['CODEKEY']);
-                    foundUsersinIiko.push(res);
+                let response = await iiko.getCustomerInfo(token, orgId, loginUmed);
+                if (response === 400) {
+                    // Create user in iiko
+                    console.log(`Creating user ${loginUmed}`);
+                    let customerId = await iiko.createUser(token, orgId, loginUmed, firstNameUmed, lastNameUmed, secondNameUmed, codeKeySigur);
+                    console.log(`User id: ${customerId['id']}`);
+                    console.log(`Adding user ${loginUmed} to student category`);
+                    let userInCategory = await iiko.addUserToCategory(token, orgId, customerId['id'], iikoCategoryId);
+                    if (userInCategory) console.log(`User ${loginUmed} added to category`);
                     continue;
-                } catch (error) {
-                    console.log(error);
                 }
+
+                // compare cards and add/remove
+                compareCards(token, orgId, fioUmed, loginUmed, response.id, response.cards, codeKeySigur);
+                foundUsersinIiko.push(response);
+                continue;
             }
         }
     }
