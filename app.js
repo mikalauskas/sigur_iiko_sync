@@ -71,7 +71,9 @@ async function compareUsers(umedUsers, sigurUsers, token, orgId) {
                     // Create user in iiko
                     console.log(`Creating user ${loginUmed}`);
                     let customerId = await iiko.createUser(token, orgId, loginUmed, firstNameUmed, lastNameUmed, secondNameUmed, codeKeySigur);
-                    console.log(`User id: ${customerId['id']}`);
+                    if (customerId) {
+                        console.log(`Created user with id: ${customerId['id']}`);
+                    }
                     console.log(`Adding user ${loginUmed} to student category`);
                     let userInCategory = await iiko.addUserToCategory(token, orgId, customerId['id'], iikoCategoryId);
                     if (userInCategory) console.log(`User ${loginUmed} added to category`);
