@@ -3,3 +3,7 @@ node_modules
 personal.json
 iikoUsers.json
 .eslintrc.yml
+1c_merged.json
+1c_persons_contact_info.json
+1c_status_info.json
+1c_students.json
