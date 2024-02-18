@@ -49,38 +49,32 @@ const compareUsers = async (umedUsers, sigurUsers, token, orgId) => {
 
   // Iterate through each user from umedUsers
   for (const umedUser of umedUsers) {
-    const {
-      NAME: firstNameUmed,
-      LAST_NAME: lastNameUmed,
-      SECOND_NAME: secondNameUmed,
-      LOGIN: loginUmed,
-    } = umedUser;
-    const umed_fullname = `${lastNameUmed} ${firstNameUmed} ${secondNameUmed}`;
+    const { umed_login, umed_fullname, umed_firstname, umed_lastname, umed_secondname } = umedUser;
 
     // Iterate through each user from sigurUsers
     for (const sigurUser of sigurUsers) {
-      const { fullname: sigur_name, sigur_key } = sigurUser;
+      const { sigur_fullname, sigur_key } = sigurUser;
 
       // Calculate similarity between names
-      const similarity = stringSimilarity(umed_fullname, sigur_name);
+      const similarity = stringSimilarity(umed_fullname, sigur_fullname);
 
       // If similarity is greater than 0.95, consider it a match
       if (similarity > 0.95) {
         // Search user in iiko
         await delay(300);
-        const response = await iiko.getCustomerInfo(token, orgId, loginUmed);
+        const response = await iiko.getCustomerInfo(token, orgId, umed_login);
 
         // If user not found in iiko, create and add to category
         if (response === 400) {
-          console.log(`Creating user ${loginUmed}`);
+          console.log(`Creating user ${umed_login}`);
           await delay(300);
           const customerId = await iiko.createUser(
             token,
             orgId,
-            loginUmed,
-            firstNameUmed,
-            lastNameUmed,
-            secondNameUmed,
+            umed_login,
+            umed_firstname,
+            umed_lastname,
+            umed_secondname,
             sigur_key,
           );
 
@@ -88,7 +82,7 @@ const compareUsers = async (umedUsers, sigurUsers, token, orgId) => {
             console.log(`Created user with id: ${customerId.id}`);
           }
 
-          console.log(`Adding user ${loginUmed} to student category`);
+          console.log(`Adding user ${umed_login} to student category`);
           await delay(300);
           const userInCategory = await iiko.addUserToCategory(
             token,
@@ -98,7 +92,7 @@ const compareUsers = async (umedUsers, sigurUsers, token, orgId) => {
           );
 
           if (userInCategory) {
-            console.log(`User ${loginUmed} added to category`);
+            console.log(`User ${umed_login} added to category`);
           }
 
           continue;
@@ -109,7 +103,7 @@ const compareUsers = async (umedUsers, sigurUsers, token, orgId) => {
           token,
           orgId,
           umed_fullname,
-          loginUmed,
+          umed_login,
           response.id,
           response.cards,
           sigur_key,
@@ -150,7 +144,7 @@ const getSigurUsers = async () => {
   const sigurUsersDump = sigurUsers.map((el) => {
     return {
       ID: el.sigur_id,
-      NAME: el.fullname,
+      NAME: el.sigur_fullname,
       CODEKEY: el.sigur_key,
     };
   });
@@ -166,16 +160,26 @@ async function main() {
   const sigurUsers = await getSigurUsers();
 
   const c1Users = await create1cJsonData();
+  await utils.writeToJson('1c_outputData.json', c1Users);
 
   console.log(`Total users in umed: ${umedUsers.length}`);
   console.log(`Total users in sigur: ${sigurUsers.length}`);
   console.log(`Total users in 1c: ${c1Users.length}`);
 
-  const merge1cSigur = utils.mergeArrays(c1Users, sigurUsers, 'fullname');
-  await utils.writeToJson('merged_1c_sigur.json', merge1cSigur);
+  const merge1cSigur = utils.mergeArraysUsingSimilarity(
+    c1Users,
+    sigurUsers,
+    'fullname',
+    'sigur_fullname',
+  );
 
-  const merge1cSigurUmed = utils.mergeArraysDif(merge1cSigur, umedUsers, 'student_id', 'umed_guid');
-  await utils.writeToJson('merged_umed_1c_sigur.json', merge1cSigurUmed);
+  const merge1cSigurUmed = utils.mergeArraysDiff(
+    merge1cSigur,
+    umedUsers,
+    'student_id',
+    'umed_guid',
+  );
+  await utils.writeToJson('umed_1c_sigur.json', merge1cSigurUmed);
 }
 
 main();
