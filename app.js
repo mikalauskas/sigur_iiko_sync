@@ -1,8 +1,9 @@
-const fs = require('fs');
 const Sigur = require('./lib/sigur.js');
-const umed = require('./lib/umed.js');
 const iiko = require('./lib/iiko.js');
 const dotenv = require('dotenv');
+const utils = require('./lib/utils.js');
+const { getUmedUsers } = require('./lib/umed.js');
+const { create1cJsonData } = require('./lib/1c.js');
 const { stringSimilarity } = require('string-similarity-js');
 require('log-timestamp');
 dotenv.config();
@@ -16,42 +17,11 @@ const umedToken = process.env.UMED_TOKEN;
 const iikoApi = process.env.IIKO_API;
 const iikoCategoryId = process.env.IIKO_STUDENT_CATEGORY;
 
-const sigur = new Sigur(
-  sigurDbHost,
-  SigurDbPort,
-  SigurDbUser,
-  SigurDbPassword,
-  SigurDbName,
-);
-
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const dumpToJson = (filename, data) => {
-  if (data) {
-    console.log(`Writing data to ${filename}`);
-    fs.writeFile(
-      filename,
-      '\ufeff' + JSON.stringify(data, null, 4).replace(/\n/g, '\r\n'),
-      (err) => {
-        if (err) {
-          console.error(err);
-        }
-      },
-    );
-  }
-};
 
 // Compare cards of iiko users
 // Add a new card, remove old cards
-async function compareCards(
-  token,
-  orgId,
-  fio,
-  phone,
-  customerId,
-  userCards,
-  newCard,
-) {
+const compareCards = async (token, orgId, fio, phone, customerId, userCards, newCard) => {
   await delay(300);
   await iiko.addCard(token, orgId, customerId, newCard);
   //console.log(`User: ${fio} (${phone}) newCard: ${newCard}`);
@@ -70,10 +40,10 @@ async function compareCards(
     await delay(300);
     await iiko.removeCard(token, orgId, customerId, cardNumber);
   }
-}
+};
 
 // Compare Sigur users and Umed users
-async function compareUsers(umedUsers, sigurUsers, token, orgId) {
+const compareUsers = async (umedUsers, sigurUsers, token, orgId) => {
   console.log('Comparing job started');
   const foundUsersinIiko = [];
 
@@ -85,14 +55,14 @@ async function compareUsers(umedUsers, sigurUsers, token, orgId) {
       SECOND_NAME: secondNameUmed,
       LOGIN: loginUmed,
     } = umedUser;
-    const fioUmed = `${lastNameUmed} ${firstNameUmed} ${secondNameUmed}`;
+    const umed_fullname = `${lastNameUmed} ${firstNameUmed} ${secondNameUmed}`;
 
     // Iterate through each user from sigurUsers
     for (const sigurUser of sigurUsers) {
-      const { NAME: fioSigur, CODEKEY: codeKeySigur } = sigurUser;
+      const { fullname: sigur_name, sigur_key } = sigurUser;
 
       // Calculate similarity between names
-      const similarity = stringSimilarity(fioUmed, fioSigur);
+      const similarity = stringSimilarity(umed_fullname, sigur_name);
 
       // If similarity is greater than 0.95, consider it a match
       if (similarity > 0.95) {
@@ -111,7 +81,7 @@ async function compareUsers(umedUsers, sigurUsers, token, orgId) {
             firstNameUmed,
             lastNameUmed,
             secondNameUmed,
-            codeKeySigur,
+            sigur_key,
           );
 
           if (customerId) {
@@ -138,11 +108,11 @@ async function compareUsers(umedUsers, sigurUsers, token, orgId) {
         compareCards(
           token,
           orgId,
-          fioUmed,
+          umed_fullname,
           loginUmed,
           response.id,
           response.cards,
-          codeKeySigur,
+          sigur_key,
         );
         foundUsersinIiko.push(response);
 
@@ -153,33 +123,59 @@ async function compareUsers(umedUsers, sigurUsers, token, orgId) {
 
   console.log(`Found users in iiko db: ${foundUsersinIiko.length}`);
   return foundUsersinIiko;
-}
+};
 
-async function syncUsers(sigurUsers) {
+const syncUsers = async (sigurUsers) => {
   try {
     console.log('Sync job started');
-    const umedUsers = await umed.getStudents(umedToken);
+    const umedUsers = await getUmedUsers(umedToken);
     console.log(`Total users in umed: ${umedUsers.length}`);
 
     const token = await iiko.getToken(iikoApi);
     const orgId = await iiko.getOrgId(token);
 
     console.log('Comparing user between Sigur and Umed');
-    const compareResult = await compareUsers(
-      umedUsers,
-      sigurUsers,
-      token,
-      orgId,
-    );
+    const compareResult = await compareUsers(umedUsers, sigurUsers, token, orgId);
     console.log('Comparing job finished');
-    dumpToJson('iikoUsers.json', compareResult);
+    utils.writeToJson('iikoUsers.json', compareResult);
   } catch (error) {
     console.log(error);
   }
+};
+
+const getSigurUsers = async () => {
+  const sigur = new Sigur(sigurDbHost, SigurDbPort, SigurDbUser, SigurDbPassword, SigurDbName);
+  const sigurUsers = await sigur.getPersonal();
+
+  const sigurUsersDump = sigurUsers.map((el) => {
+    return {
+      ID: el.sigur_id,
+      NAME: el.fullname,
+      CODEKEY: el.sigur_key,
+    };
+  });
+  await utils.writeToJsonBOM('personal.json', sigurUsersDump);
+  return sigurUsers;
+};
+
+async function main() {
+  console.log('Sync job started');
+  const umedUsers = await getUmedUsers(umedToken, 9);
+  await utils.writeToJson('umed_users.json', umedUsers);
+
+  const sigurUsers = await getSigurUsers();
+
+  const c1Users = await create1cJsonData();
+
+  console.log(`Total users in umed: ${umedUsers.length}`);
+  console.log(`Total users in sigur: ${sigurUsers.length}`);
+  console.log(`Total users in 1c: ${c1Users.length}`);
+
+  const merge1cSigur = utils.mergeArrays(c1Users, sigurUsers, 'fullname');
+  await utils.writeToJson('merged_1c_sigur.json', merge1cSigur);
+
+  const merge1cSigurUmed = utils.mergeArraysDif(merge1cSigur, umedUsers, 'student_id', 'umed_guid');
+  await utils.writeToJson('merged_umed_1c_sigur.json', merge1cSigurUmed);
 }
 
-sigur.getPersonal((sigurUsers) => {
-  console.log(`Total users in sigur: ${sigurUsers.length}`);
-  syncUsers(sigurUsers);
-  dumpToJson('personal.json', sigurUsers);
-});
+main();
