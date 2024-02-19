@@ -2,7 +2,7 @@ const Sigur = require('./lib/sigur.js');
 const iiko = require('./lib/iiko.js');
 const dotenv = require('dotenv');
 const utils = require('./lib/utils.js');
-const { getUmedUsers } = require('./lib/umed.js');
+const { getUmedUsers, getUmedStudents, getUmedAbiturients } = require('./lib/umed.js');
 const { create1cJsonData } = require('./lib/1c.js');
 const { stringSimilarity } = require('string-similarity-js');
 require('log-timestamp');
@@ -11,7 +11,7 @@ dotenv.config();
 const sigurDbHost = process.env.SIGUR_HOST;
 const SigurDbPort = process.env.SIGUR_PORT;
 const SigurDbUser = process.env.SIGUR_USER;
-const SigurDbPassword = process.env.SIGUR_PASSWORd;
+const SigurDbPassword = process.env.SIGUR_PASSWORD;
 const SigurDbName = process.env.SIGUR_DATABASE;
 const umedToken = process.env.UMED_TOKEN;
 const iikoApi = process.env.IIKO_API;
@@ -144,6 +144,7 @@ const getSigurUsers = async () => {
   const sigurUsersDump = sigurUsers.map((el) => {
     return {
       ID: el.sigur_id,
+      POS: el.sigur_pos,
       NAME: el.sigur_fullname,
       CODEKEY: el.sigur_key,
     };
@@ -154,8 +155,12 @@ const getSigurUsers = async () => {
 
 async function main() {
   console.log('Sync job started');
-  const umedUsers = await getUmedUsers(umedToken, 9);
+  const umedUsers = await getUmedUsers(umedToken);
   await utils.writeToJson('umed_users.json', umedUsers);
+  const umedStudents = await getUmedStudents(umedToken);
+  await utils.writeToJson('umed_students.json', umedStudents);
+  const umedAbiturients = await getUmedAbiturients(umedToken);
+  await utils.writeToJson('umed_abiturients.json', umedAbiturients);
 
   const sigurUsers = await getSigurUsers();
 
