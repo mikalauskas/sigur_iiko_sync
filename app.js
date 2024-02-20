@@ -1,5 +1,5 @@
 const Sigur = require('./lib/sigur.js');
-const iiko = require('./lib/iiko.js');
+const Iiko = require('./lib/iiko.js');
 const dotenv = require('dotenv');
 const utils = require('./lib/utils.js');
 const { getUmedUsers, getUmedStudents, getUmedAbiturients } = require('./lib/umed.js');
@@ -17,124 +17,49 @@ const umedToken = process.env.UMED_TOKEN;
 const iikoApi = process.env.IIKO_API;
 const iikoCategoryId = process.env.IIKO_STUDENT_CATEGORY;
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Compare cards of iiko users
-// Add a new card, remove old cards
-const compareCards = async (token, orgId, fio, phone, customerId, userCards, newCard) => {
-  await delay(300);
-  await iiko.addCard(token, orgId, customerId, newCard);
-  //console.log(`User: ${fio} (${phone}) newCard: ${newCard}`);
-
-  const cardsToRemove = userCards
-    .filter((card) => card.number !== newCard)
-    .map((card) => card.number);
-
-  if (cardsToRemove.length > 0) {
-    console.log('cards to remove:');
-    console.log(cardsToRemove);
-  }
-
-  for (let cardNumber of cardsToRemove) {
-    console.log(`User: ${fio} (${phone}) removing card: ${cardNumber}`);
-    await delay(300);
-    await iiko.removeCard(token, orgId, customerId, cardNumber);
-  }
-};
-
-// Compare Sigur users and Umed users
-const compareUsers = async (umedUsers, sigurUsers, token, orgId) => {
+/**
+ * Compare Sigur users and Umed users
+ * @date 2/20/2024 - 1:58:43 PM
+ * @param {Array} users array
+ * @async
+ * @returns {Array} array
+ */
+const syncIiko = async (users) => {
   console.log('Comparing job started');
-  const foundUsersinIiko = [];
+  const iikoInstance = new Iiko(iikoApi, iikoCategoryId);
+  const iikoUsers = [];
 
-  // Iterate through each user from umedUsers
-  for (const umedUser of umedUsers) {
-    const { umed_login, umed_fullname, umed_firstname, umed_lastname, umed_secondname } = umedUser;
+  const usersToSync = users.filter(
+    (user) => user.phone && user.sigur_key && user.status === 'Студент',
+  );
 
-    // Iterate through each user from sigurUsers
-    for (const sigurUser of sigurUsers) {
-      const { sigur_fullname, sigur_key } = sigurUser;
+  // Iterate through each user
+  for (const user of usersToSync) {
+    const foundUser = await iikoInstance.getCustomerInfo(user.phone);
+    if (foundUser.id) {
+      //console.log(`Update: ${user.phone} ${user.fullname}`);
+      iikoUsers.push(foundUser);
+      const cardsToRemove = foundUser.cards
+        .filter((card) => card.number !== user.sigur_key)
+        .map((card) => card.number);
 
-      // Calculate similarity between names
-      const similarity = stringSimilarity(umed_fullname, sigur_fullname);
-
-      // If similarity is greater than 0.95, consider it a match
-      if (similarity > 0.95) {
-        // Search user in iiko
-        await delay(300);
-        const response = await iiko.getCustomerInfo(token, orgId, umed_login);
-
-        // If user not found in iiko, create and add to category
-        if (response === 400) {
-          console.log(`Creating user ${umed_login}`);
-          await delay(300);
-          const customerId = await iiko.createUser(
-            token,
-            orgId,
-            umed_login,
-            umed_firstname,
-            umed_lastname,
-            umed_secondname,
-            sigur_key,
-          );
-
-          if (customerId) {
-            console.log(`Created user with id: ${customerId.id}`);
-          }
-
-          console.log(`Adding user ${umed_login} to student category`);
-          await delay(300);
-          const userInCategory = await iiko.addUserToCategory(
-            token,
-            orgId,
-            customerId.id,
-            iikoCategoryId,
-          );
-
-          if (userInCategory) {
-            console.log(`User ${umed_login} added to category`);
-          }
-
-          continue;
+      if (cardsToRemove.length > 0) {
+        for (const card of cardsToRemove) {
+          await iikoInstance.removeCard(foundUser.id, card);
         }
+      }
+      await iikoInstance.addCard(foundUser.id, user.sigur_key);
+    } else {
+      const createdUser = await iikoInstance.createUser(user);
 
-        // If user found in iiko, compare cards and add/remove
-        compareCards(
-          token,
-          orgId,
-          umed_fullname,
-          umed_login,
-          response.id,
-          response.cards,
-          sigur_key,
-        );
-        foundUsersinIiko.push(response);
-
-        continue;
+      if (createdUser.id) {
+        await iikoInstance.addUserToCategory(createdUser.id, iikoCategoryId);
       }
     }
+    continue;
   }
 
-  console.log(`Found users in iiko db: ${foundUsersinIiko.length}`);
-  return foundUsersinIiko;
-};
-
-const syncUsers = async (sigurUsers) => {
-  try {
-    console.log('Sync job started');
-    const umedUsers = await getUmedUsers(umedToken);
-    console.log(`Total users in umed: ${umedUsers.length}`);
-
-    const token = await iiko.getToken(iikoApi);
-    const orgId = await iiko.getOrgId(token);
-
-    console.log('Comparing user between Sigur and Umed');
-    const compareResult = await compareUsers(umedUsers, sigurUsers, token, orgId);
-    console.log('Comparing job finished');
-    utils.writeToJson('iikoUsers.json', compareResult);
-  } catch (error) {
-    console.log(error);
-  }
+  return iikoUsers;
 };
 
 const getSigurUsers = async () => {
@@ -156,21 +81,20 @@ const getSigurUsers = async () => {
 async function main() {
   console.log('Sync job started');
   const umedUsers = await getUmedUsers(umedToken);
-  await utils.writeToJson('umed_users.json', umedUsers);
-  const umedStudents = await getUmedStudents(umedToken);
-  await utils.writeToJson('umed_students.json', umedStudents);
+  await utils.writeToJson('umedUsers.json', umedUsers);
+
+  /* const umedStudents = await getUmedStudents(umedToken);
+  await utils.writeToJson('umedStudents.json', umedStudents);
+
   const umedAbiturients = await getUmedAbiturients(umedToken);
-  await utils.writeToJson('umed_abiturients.json', umedAbiturients);
+  await utils.writeToJson('umedAbiturients.json', umedAbiturients); */
 
   const sigurUsers = await getSigurUsers();
 
   const c1Users = await create1cJsonData();
-  await utils.writeToJson('1c_outputData.json', c1Users);
+  await utils.writeToJson('c1Users.json', c1Users);
 
-  console.log(`Total users in umed: ${umedUsers.length}`);
-  console.log(`Total users in sigur: ${sigurUsers.length}`);
-  console.log(`Total users in 1c: ${c1Users.length}`);
-
+  console.log('Merging 1C data with Sigur');
   const merge1cSigur = utils.mergeArraysUsingSimilarity(
     c1Users,
     sigurUsers,
@@ -178,13 +102,23 @@ async function main() {
     'sigur_fullname',
   );
 
+  console.log('Merging 1C and Sugur data with Umed');
   const merge1cSigurUmed = utils.mergeArraysDiff(
     merge1cSigur,
     umedUsers,
     'student_id',
     'umed_guid',
   );
-  await utils.writeToJson('umed_1c_sigur.json', merge1cSigurUmed);
+  await utils.writeToJson('merge1cSigurUmed.json', merge1cSigurUmed);
+
+  console.log('Sync users in Iiko');
+  const iikoUsers = await syncIiko(merge1cSigurUmed);
+  utils.writeToJson('iikoUsers.json', iikoUsers);
+
+  console.log(`Total users in umed: ${umedUsers.length}`);
+  console.log(`Total users in sigur: ${sigurUsers.length}`);
+  console.log(`Total users in 1c: ${c1Users.length}`);
+  console.log(`Total users in iiko: ${iikoUsers.length}`);
 }
 
 main();
