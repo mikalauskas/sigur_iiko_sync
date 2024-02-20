@@ -7,4 +7,5 @@ extends:
   - prettier
 parserOptions:
   ecmaVersion: latest
-rules: {}
+rules:
+  no-unused-vars: warn
