@@ -2,9 +2,8 @@ const Sigur = require('./lib/sigur.js');
 const Iiko = require('./lib/iiko.js');
 const dotenv = require('dotenv');
 const utils = require('./lib/utils.js');
-const { getUmedUsers, getUmedStudents, getUmedAbiturients } = require('./lib/umed.js');
+const umed = require('./lib/umed.js');
 const { create1cJsonData } = require('./lib/1c.js');
-const { stringSimilarity } = require('string-similarity-js');
 require('log-timestamp');
 dotenv.config();
 
@@ -17,53 +16,14 @@ const umedToken = process.env.UMED_TOKEN;
 const iikoApi = process.env.IIKO_API;
 const iikoCategoryId = process.env.IIKO_STUDENT_CATEGORY;
 
-/**
- * Compare Sigur users and Umed users
- * @date 2/20/2024 - 1:58:43 PM
- * @param {Array} users array
- * @async
- * @returns {Array} array
- */
-const syncIiko = async (users) => {
-  console.log('Comparing job started');
-  const iikoInstance = new Iiko(iikoApi, iikoCategoryId);
-  const iikoUsers = [];
-
-  const usersToSync = users.filter(
-    (user) => user.phone && user.sigur_key && user.status === 'Студент',
-  );
-
-  // Iterate through each user
-  for (const user of usersToSync) {
-    const foundUser = await iikoInstance.getCustomerInfo(user.phone);
-    if (foundUser.id) {
-      //console.log(`Update: ${user.phone} ${user.fullname}`);
-      iikoUsers.push(foundUser);
-      const cardsToRemove = foundUser.cards
-        .filter((card) => card.number !== user.sigur_key)
-        .map((card) => card.number);
-
-      if (cardsToRemove.length > 0) {
-        for (const card of cardsToRemove) {
-          await iikoInstance.removeCard(foundUser.id, card);
-        }
-      }
-      await iikoInstance.addCard(foundUser.id, user.sigur_key);
-    } else {
-      const createdUser = await iikoInstance.createUser(user);
-
-      if (createdUser.id) {
-        await iikoInstance.addUserToCategory(createdUser.id, iikoCategoryId);
-      }
-    }
-    continue;
-  }
-
-  return iikoUsers;
-};
-
 const getSigurUsers = async () => {
-  const sigur = new Sigur(sigurDbHost, SigurDbPort, SigurDbUser, SigurDbPassword, SigurDbName);
+  const sigur = new Sigur(
+    sigurDbHost,
+    SigurDbPort,
+    SigurDbUser,
+    SigurDbPassword,
+    SigurDbName,
+  );
   const sigurUsers = await sigur.getPersonal();
 
   const sigurUsersDump = sigurUsers.map((el) => {
@@ -79,46 +39,54 @@ const getSigurUsers = async () => {
 };
 
 async function main() {
-  console.log('Sync job started');
-  const umedUsers = await getUmedUsers(umedToken);
-  await utils.writeToJson('umedUsers.json', umedUsers);
-
-  /* const umedStudents = await getUmedStudents(umedToken);
-  await utils.writeToJson('umedStudents.json', umedStudents);
-
-  const umedAbiturients = await getUmedAbiturients(umedToken);
-  await utils.writeToJson('umedAbiturients.json', umedAbiturients); */
-
-  const sigurUsers = await getSigurUsers();
+  console.log('Main job started');
 
   const c1Users = await create1cJsonData();
+  const testUser = {
+    student_id: '0270c460-433e-11ee-bba5-fc3497b09f94',
+    person_id: 'b1c6bd5e-427d-11ee-bba5-fc3497b09f94',
+    speciality_id: '9ff71a04-93f0-11e9-80d0-e0d55e04ef59',
+    application_id: '712f3aae-4277-11ee-bba5-fc3497b09f94',
+    bitrix_id: '2305218977',
+    program_id: '9e2576d3-a132-11ed-bb9e-fc3497b09f94',
+    student_code: '2022001761',
+    fullname: 'Тесто Тест Тестович',
+    login: '2305218977',
+    password: '382035467033',
+    phone: '+79507521007',
+    speciality_name: 'Медицинская оптика',
+    speciality_code: '31.02.04  ',
+    group_id: 'ccda57b3-4179-11ee-bba5-fc3497b09f94',
+    period: '2023-09-01T12:00:33',
+    status: 'Студент',
+    rup_id: '42b50f49-416f-11ee-bba5-fc3497b09f94',
+    group_code: '00353',
+    group_name: 'МОЗу-1-23',
+    group_year: '2023',
+    edu_form: 'Заочная',
+    edu_end: '2025-02-28T00:00:00',
+    contract_id: 'bd62f414-427d-11ee-bba5-fc3497b09f94',
+    contract_code: '000003939',
+    contract_date: '2023-08-24T17:57:20',
+    contract_end: '2026-07-31T00:00:00',
+    contract_total_payment: '70000',
+  };
+  c1Users.push(testUser);
   await utils.writeToJson('c1Users.json', c1Users);
 
-  console.log('Merging 1C data with Sigur');
-  const merge1cSigur = utils.mergeArraysUsingSimilarity(
-    c1Users,
-    sigurUsers,
-    'fullname',
-    'sigur_fullname',
-  );
-
-  console.log('Merging 1C and Sugur data with Umed');
-  const merge1cSigurUmed = utils.mergeArraysDiff(
-    merge1cSigur,
-    umedUsers,
-    'student_id',
-    'umed_guid',
-  );
-  await utils.writeToJson('merge1cSigurUmed.json', merge1cSigurUmed);
+  /* const sigurUsers = await getSigurUsers();
 
   console.log('Sync users in Iiko');
-  const iikoUsers = await syncIiko(merge1cSigurUmed);
-  utils.writeToJson('iikoUsers.json', iikoUsers);
+  const iikoInstance = new Iiko(iikoApi, iikoCategoryId);
+  const iikoUsers = await iikoInstance.syncIiko(c1Users, sigurUsers);
+  utils.writeToJson('iikoUsers.json', iikoUsers); */
 
-  console.log(`Total users in umed: ${umedUsers.length}`);
-  console.log(`Total users in sigur: ${sigurUsers.length}`);
+  const syncUmed = await umed.syncUmed(umedToken, c1Users);
+
   console.log(`Total users in 1c: ${c1Users.length}`);
-  console.log(`Total users in iiko: ${iikoUsers.length}`);
+  /* console.log(`Total users in sigur: ${sigurUsers.length}`);
+  console.log(`Total users in iiko: ${iikoUsers.length}`); */
+  console.log('Main job finished');
 }
 
 main();
