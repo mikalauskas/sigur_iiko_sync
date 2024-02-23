@@ -41,7 +41,7 @@ const getSigurUsers = async () => {
 async function main() {
   console.log('Main job started');
 
-  const c1Users = await create1cJsonData();
+  const CUsers = await create1cJsonData();
   const testUser = {
     student_id: '0270c460-433e-11ee-bba5-fc3497b09f94',
     person_id: 'b1c6bd5e-427d-11ee-bba5-fc3497b09f94',
@@ -71,19 +71,19 @@ async function main() {
     contract_end: '2026-07-31T00:00:00',
     contract_total_payment: '70000',
   };
-  c1Users.push(testUser);
-  await utils.writeToJson('c1Users.json', c1Users);
+  CUsers.push(testUser);
+  await utils.writeToJson('CUsers.json', CUsers);
 
   /* const sigurUsers = await getSigurUsers();
 
   console.log('Sync users in Iiko');
   const iikoInstance = new Iiko(iikoApi, iikoCategoryId);
-  const iikoUsers = await iikoInstance.syncIiko(c1Users, sigurUsers);
+  const iikoUsers = await iikoInstance.syncIiko(CUsers, sigurUsers);
   utils.writeToJson('iikoUsers.json', iikoUsers); */
 
-  const syncUmed = await umed.syncUmed(umedToken, c1Users);
+  const syncUmed = await umed.syncUmed(umedToken, CUsers);
 
-  console.log(`Total users in 1c: ${c1Users.length}`);
+  console.log(`Total users in 1c: ${CUsers.length}`);
   /* console.log(`Total users in sigur: ${sigurUsers.length}`);
   console.log(`Total users in iiko: ${iikoUsers.length}`); */
   console.log('Main job finished');
