@@ -38,7 +38,7 @@ const getSigurUsers = async () => {
   return sigurUsers;
 };
 
-async function main() {
+(async () => {
   console.log('Main job started');
 
   const CUsers = await create1cJsonData();
@@ -55,6 +55,4 @@ async function main() {
   /* console.log(`Total users in sigur: ${sigurUsers.length}`);
   console.log(`Total users in iiko: ${iikoUsers.length}`); */
   console.log('Main job finished');
-}
-
-main();
+})();
