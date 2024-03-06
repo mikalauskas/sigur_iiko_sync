@@ -2,7 +2,8 @@ const Sigur = require('./lib/sigur.js');
 const Iiko = require('./lib/iiko.js');
 const dotenv = require('dotenv');
 const utils = require('./lib/utils.js');
-const umed = require('./lib/umed.js');
+const { syncUmed } = require('./lib/umed.js');
+const { syncMoodle } = require('./lib/moodle.js');
 const { create1cJsonData } = require('./lib/1c.js');
 require('log-timestamp');
 dotenv.config();
@@ -15,6 +16,7 @@ const SigurDbName = process.env.SIGUR_DATABASE;
 const umedToken = process.env.UMED_TOKEN;
 const iikoApi = process.env.IIKO_API;
 const iikoCategoryId = process.env.IIKO_STUDENT_CATEGORY;
+const moodleToken = process.env.MOODLE_TOKEN;
 
 const getSigurUsers = async () => {
   const sigur = new Sigur(
@@ -25,6 +27,8 @@ const getSigurUsers = async () => {
     SigurDbName,
   );
   const sigurUsers = await sigur.getPersonal();
+
+  console.log(`Total users in sigur: ${sigurUsers.length}`);
 
   const sigurUsersDump = sigurUsers.map((el) => {
     return {
@@ -39,20 +43,10 @@ const getSigurUsers = async () => {
 };
 
 (async () => {
-  console.log('Main job started');
-
   const CUsers = await create1cJsonData();
-  await utils.writeToJson('CUsers.json', CUsers);
-
-  /* const sigurUsers = getSigurUsers();
-
+  /* const sigurUsers = await getSigurUsers();
   const iikoInstance = new Iiko(iikoApi, iikoCategoryId);
-  const iikoUsers = iikoInstance.syncIiko(await CUsers, await sigurUsers);
-  utils.writeToJson('iikoUsers.json', await iikoUsers); */
-
-  const syncUmed = await umed.syncUmed(umedToken, CUsers);
-
-  /* console.log(`Total users in sigur: ${sigurUsers.length}`);
-  console.log(`Total users in iiko: ${iikoUsers.length}`); */
-  console.log('Main job finished');
+  iikoInstance.syncIiko(CUsers, sigurUsers);
+  syncUmed(umedToken, CUsers); */
+  syncMoodle(moodleToken, CUsers);
 })();
