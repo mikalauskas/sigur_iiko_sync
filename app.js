@@ -45,10 +45,10 @@ const getSigurUsers = async () => {
 (async () => {
   const CUsers = await create1cJsonData();
 
-  syncUmed(umedToken, CUsers);
-  syncMoodle(moodleToken, CUsers);
+  await syncUmed(umedToken, CUsers);
+  await syncMoodle(moodleToken, CUsers);
 
   const sigurUsers = await getSigurUsers();
   const iikoInstance = new Iiko(iikoApi, iikoCategoryId);
-  iikoInstance.syncIiko(CUsers, sigurUsers);
+  await iikoInstance.syncIiko(CUsers, sigurUsers);
 })();
