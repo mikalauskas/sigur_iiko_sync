@@ -13,3 +13,6 @@
 - [WIP] Method to change phone and email
 - Schedule by group, date, teacher
 - Current Grades
+
+### Moodle
+- Update methods update passwords too
