@@ -16,8 +16,7 @@
     "libphonenumber-js": "^1.10",
     "log-timestamp": "^0.3.0",
     "mysql": "^2.18.1",
-    "string-similarity-js": "^2.1.4",
-    "xml-js": "^1.6.11"
+    "string-similarity-js": "^2.1.4"
   },
   "devDependencies": {
     "eslint": "^8.53.0",
