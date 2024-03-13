@@ -16,3 +16,6 @@
 
 ### Moodle
 - Update methods update passwords too
+
+### 1C Fresh
+- Get data about employees: name, contact info etc
