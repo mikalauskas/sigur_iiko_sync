@@ -27,6 +27,7 @@ const getSigurUsers = async () => {
 };
 
 (async () => {
+  console.log('app started');
   try {
     const CUsers = await create1cJsonData();
     const sigurUsers = await getSigurUsers();
@@ -38,4 +39,6 @@ const getSigurUsers = async () => {
   } catch (e) {
     console.error(e);
   }
-})();
+})()
+  .then(() => console.log('app finished'))
+  .catch((e) => console.error(e));
