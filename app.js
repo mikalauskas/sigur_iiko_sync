@@ -33,10 +33,12 @@ const getSigurUsers = async () => {
     const CUsers = await create1cJsonData();
     const sigurUsers = await getSigurUsers();
 
-    syncUmed(CUsers);
-    syncMoodle(CUsers);
+    await syncUmed(CUsers);
+
     const iikoInstance = new Iiko();
-    iikoInstance.syncIiko(CUsers, sigurUsers);
+    await iikoInstance.syncIiko(CUsers, sigurUsers);
+
+    await syncMoodle(CUsers);
   } catch (e) {
     console.error(e);
   }
