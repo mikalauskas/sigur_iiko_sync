@@ -1,23 +1,11 @@
 ## TODO
-### General
-- Reset password endpoint
 
 ### Sigur
 - user create method
 - user disable method
 
-### 1C
-- [WIP] Method to change phone and email
-- Schedule by group, date, teacher
-- Current Grades
-
-### Mail.ru
-- Create/update/disable users
-
-### Bitrix24
-- Update employees status, position name, phone
-
 ### Moodle
+0. [WIP] Prepare for uploading all users to moodle, rewrite sync logic to match umed
 1. Get active courses with idnumber filled
 2. Get users of these courses
 3. Group users by group name
