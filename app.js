@@ -36,7 +36,7 @@ const getSigurUsers = async () => {
 
     const sigurUsers = await getSigurUsers();
     const iikoInstance = new Iiko();
-    iikoInstance.syncIiko(CUsers, sigurUsers);
+    await iikoInstance.syncIiko(CUsers, sigurUsers);
 
     await syncMoodle(CUsers);
   } catch (e) {
