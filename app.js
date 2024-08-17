@@ -51,7 +51,7 @@ const syncSigurUsers = async (CUsers) => {
     }
   });
   await utils.writeToJsonBOM('groupsToCreate.json', groupsToCreate);
-  for (group_name of groupsToCreate) {
+  for (const group_name of groupsToCreate) {
     await sigur.addGroup(group_name);
   }
 
@@ -72,7 +72,7 @@ const syncSigurUsers = async (CUsers) => {
       el.group_name,
   );
   await utils.writeToJsonBOM('sigurUsersToCreate.json', sigurUsersToCreate);
-  for (user of sigurUsersToCreate) {
+  for (const user of sigurUsersToCreate) {
     const newGroupName = user.group_name.replace(/\/\d+/, '');
 
     // find group id in sigurGroups
