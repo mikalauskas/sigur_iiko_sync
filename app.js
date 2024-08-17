@@ -15,16 +15,22 @@ const getSigurUsers = async () => {
 
   console.log(`Total users in sigur: ${sigurUsers.length}`);
 
-  const sigurUsersDump = sigurUsers.map((el) => {
+  await utils.writeToJsonBOM('personal.json', sigurUsers);
+
+  function buf2hex(buffer) {
+    return [...new Uint8Array(buffer)]
+      .map((x) => x.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  return sigurUsers.map((el) => {
     return {
-      ID: el.sigur_id,
-      POS: el.sigur_pos,
-      NAME: el.sigur_fullname,
-      CODEKEY: el.sigur_key,
+      sigur_id: el.ID,
+      sigur_pos: el.POS,
+      sigur_fullname: el.NAME.replace(/\u00A0/g, ' ').trim(),
+      sigur_key: buf2hex(el.CODEKEY).slice(-8).toUpperCase().padStart(14, '0'),
     };
   });
-  await utils.writeToJsonBOM('personal.json', sigurUsersDump);
-  return sigurUsers;
 };
 
 (async () => {
