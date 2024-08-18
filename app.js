@@ -35,23 +35,23 @@ const syncSigurUsers = async (CUsers) => {
 
   // groups manipulations
   const groupsToCreate = [];
-  for (const student of CUsers) {
+  for (const CUser of CUsers) {
     if (
-      student.group_name &&
-      (student.status === 'Студент' || student.status === 'ВАкадемическомОтпуске')
+      CUser.group_name &&
+      (CUser.status === 'Студент' || CUser.status === 'ВАкадемическомОтпуске')
     ) {
-      const formattedGroupName = student.group_name.replace(/\/\d+/, '');
+      const CUserGroupName = CUser.group_name.replace(/\/\d+/, '');
 
       const foundGroupInSigur = sigurGroups.find(
-        (group) => group.NAME === formattedGroupName,
+        (sigurGroup) => sigurGroup.NAME === CUserGroupName,
       );
 
       if (
         !foundGroupInSigur &&
-        !groupsToCreate.find((group_name) => group_name === user.group_name)
+        !groupsToCreate.find((group_name) => group_name === CUserGroupName)
       ) {
-        groupsToCreate.push(user.group_name);
-        await sigur.addGroup(group_name);
+        groupsToCreate.push(CUserGroupName);
+        await sigur.addGroup(CUserGroupName);
       }
     }
   }
@@ -67,59 +67,70 @@ const syncSigurUsers = async (CUsers) => {
   await utils.writeJsonData('mergedSigur1CUsers.json', mergedSigur1CUsers);
 
   // users manipulations
-  for (const student of mergedSigur1CUsers) {
-    const validGroup = sigurGroups.filter((group) => group.NAME === student.group_name);
+  for (const CUserSigurUser of mergedSigur1CUsers) {
+    const sigurGroup = sigurGroups.filter(
+      (group) => group.NAME === CUserSigurUser.group_name,
+    );
 
     // delete user in sigur
     if (
-      student.status !== 'Студент' &&
-      student.status !== 'ВАкадемическомОтпуске' &&
-      student.sigur_id
+      CUserSigurUser.status !== 'Студент' &&
+      CUserSigurUser.status !== 'ВАкадемическомОтпуске' &&
+      CUserSigurUser.sigur_id
     ) {
       // change user's name in sigur to 'student.status student.fullname'
-      if (validGroup) {
+      if (sigurGroup) {
         await sigur.updatePersonal(
-          student.sigur_id,
-          validGroup.ID,
-          `${student.status} ${student.fullname}`,
+          CUserSigurUser.sigur_id,
+          sigurGroup.ID,
+          `${CUserSigurUser.status} ${CUserSigurUser.fullname}`,
           'студент',
-          student.person_id,
+          CUserSigurUser.person_id,
         );
       }
     }
 
     // update user in sigur
     if (
-      (student.status === 'Студент' || student.status === 'ВАкадемическомОтпуске') &&
-      student.sigur_id &&
-      student.group_name
+      (CUserSigurUser.status === 'Студент' ||
+        CUserSigurUser.status === 'ВАкадемическомОтпуске') &&
+      CUserSigurUser.sigur_id &&
+      CUserSigurUser.group_name
     ) {
       // update user's fullname and parent group id
       if (
-        validGroup &&
-        (validGroup.ID !== student.sigur_group_id ||
-          student.fullname !== student.sigur_fullname)
+        sigurGroup &&
+        (sigurGroup.ID !== CUserSigurUser.sigur_group_id ||
+          CUserSigurUser.fullname !== CUserSigurUser.sigur_fullname)
       ) {
         await sigur.updatePersonal(
-          student.sigur_id,
-          validGroup.ID,
-          student.fullname,
+          CUserSigurUser.sigur_id,
+          sigurGroup.ID,
+          CUserSigurUser.fullname,
           'студент',
-          student.person_id,
+          CUserSigurUser.person_id,
         );
       }
     }
 
     // create user
     if (
-      (student.status === 'Студент' || student.status === 'ВАкадемическомОтпуске') &&
-      !student.sigur_id &&
-      student.group_name
+      (CUserSigurUser.status === 'Студент' ||
+        CUserSigurUser.status === 'ВАкадемическомОтпуске') &&
+      !CUserSigurUser.sigur_id &&
+      CUserSigurUser.group_name
     ) {
-      const formattedGroupName = student.group_name.replace(/\/\d+/, '');
+      const CUserGroupName = CUserSigurUser.group_name.replace(/\/\d+/, '');
 
-      const group = sigurGroups.find((group) => group.NAME === formattedGroupName);
-      await sigur.addPersonal(group.ID, student.fullname, 'студент', student.person_id);
+      const foundGroupInSigur = sigurGroups.find(
+        (sigurGroup) => sigurGroup.NAME === CUserGroupName,
+      );
+      await sigur.addPersonal(
+        foundGroupInSigur.ID,
+        CUserSigurUser.fullname,
+        'студент',
+        CUserSigurUser.person_id,
+      );
     }
   }
 
