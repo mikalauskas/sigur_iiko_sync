@@ -24,35 +24,36 @@ const syncSigurUsers = async (CUsers) => {
 
     return {
       sigur_id: el.ID,
+      sigur_group_id: el.PARENT_ID,
       sigur_pos: el.POS,
       sigur_fullname: el.NAME,
       sigur_key: el.CODEKEY,
+      sigur_person_id: el.TABID,
     };
   });
   await utils.writeToJsonBOM('sigurStudents.json', sigurStudents);
 
+  // groups manipulations
   const groupsToCreate = [];
-
-  CUsers.forEach((user) => {
+  for (const student of CUsers) {
     if (
-      user.group_name &&
-      (user.status === 'Студент' || user.status === 'ВАкадемическомОтпуске')
+      student.group_name &&
+      (student.status === 'Студент' || student.status === 'ВАкадемическомОтпуске')
     ) {
-      const newGroupName = user.group_name.replace(/\/\d+/, '');
+      const formattedGroupName = student.group_name.replace(/\/\d+/, '');
 
-      const foundGroupInSigur = sigurGroups.find((group) => group.NAME === newGroupName);
+      const foundGroupInSigur = sigurGroups.find(
+        (group) => group.NAME === formattedGroupName,
+      );
 
       if (
         !foundGroupInSigur &&
         !groupsToCreate.find((group_name) => group_name === user.group_name)
       ) {
         groupsToCreate.push(user.group_name);
+        await sigur.addGroup(group_name);
       }
     }
-  });
-  await utils.writeToJsonBOM('groupsToCreate.json', groupsToCreate);
-  for (const group_name of groupsToCreate) {
-    await sigur.addGroup(group_name);
   }
 
   sigurGroups = await sigur.getGroups();
@@ -63,34 +64,64 @@ const syncSigurUsers = async (CUsers) => {
     'fullname',
     'sigur_fullname',
   );
-  await utils.writeToJsonBOM('mergedSigur1CUsers.json', mergedSigur1CUsers);
+  await utils.writeJsonData('mergedSigur1CUsers.json', mergedSigur1CUsers);
 
-  const sigurUsersToCreate = mergedSigur1CUsers.filter(
-    (el) =>
-      (el.status === 'Студент' || el.status === 'ВАкадемическомОтпуске') &&
-      !el.sigur_id &&
-      el.group_name,
-  );
-  await utils.writeToJsonBOM('sigurUsersToCreate.json', sigurUsersToCreate);
-  for (const user of sigurUsersToCreate) {
-    const newGroupName = user.group_name.replace(/\/\d+/, '');
+  // users manipulations
+  for (const student of mergedSigur1CUsers) {
+    const validGroup = sigurGroups.filter((group) => group.NAME === student.group_name);
 
-    // find group id in sigurGroups
-    const group = sigurGroups.find((group) => group.NAME === newGroupName);
-    await sigur.addPersonal(group.ID, user.fullname, 'студент', user.person_id);
+    // delete user in sigur
+    if (
+      student.status !== 'Студент' &&
+      student.status !== 'ВАкадемическомОтпуске' &&
+      student.sigur_id
+    ) {
+      // change user's name in sigur to 'student.status student.fullname'
+      if (validGroup) {
+        await sigur.updatePersonal(
+          student.sigur_id,
+          validGroup.ID,
+          `${student.status} ${student.fullname}`,
+          'студент',
+          student.person_id,
+        );
+      }
+    }
+
+    // update user in sigur
+    if (
+      (student.status === 'Студент' || student.status === 'ВАкадемическомОтпуске') &&
+      student.sigur_id &&
+      student.group_name
+    ) {
+      // update user's fullname and parent group id
+      if (
+        validGroup &&
+        (validGroup.ID !== student.sigur_group_id ||
+          student.fullname !== student.sigur_fullname)
+      ) {
+        await sigur.updatePersonal(
+          student.sigur_id,
+          validGroup.ID,
+          student.fullname,
+          'студент',
+          student.person_id,
+        );
+      }
+    }
+
+    // create user
+    if (
+      (student.status === 'Студент' || student.status === 'ВАкадемическомОтпуске') &&
+      !student.sigur_id &&
+      student.group_name
+    ) {
+      const formattedGroupName = student.group_name.replace(/\/\d+/, '');
+
+      const group = sigurGroups.find((group) => group.NAME === formattedGroupName);
+      await sigur.addPersonal(group.ID, student.fullname, 'студент', student.person_id);
+    }
   }
-
-  const sigurUsersToDelete = mergedSigur1CUsers.filter(
-    (el) =>
-      el.status !== 'Студент' && el.status !== 'ВАкадемическомОтпуске' && el.sigur_id,
-  );
-  await utils.writeToJsonBOM('sigurUsersToDelete.json', sigurUsersToDelete);
-
-  const sigurUsersToUpdate = mergedSigur1CUsers.filter(
-    (el) =>
-      (el.status === 'Студент' || el.status === 'ВАкадемическомОтпуске') && el.sigur_id,
-  );
-  await utils.writeToJsonBOM('sigurUsersToUpdate.json', sigurUsersToUpdate);
 
   console.log(`Total users in sigur: ${sigurStudents.length}`);
 

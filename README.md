@@ -1,11 +1,6 @@
 ## TODO
 
-### Sigur
-- user create method
-- user disable method
-
 ### Moodle
-0. [WIP] Prepare for uploading all users to moodle, rewrite sync logic to match umed
 1. Get active courses with idnumber filled
 2. Get users of these courses
 3. Group users by group name
