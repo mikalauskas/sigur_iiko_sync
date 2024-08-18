@@ -67,87 +67,88 @@ const syncSigurUsers = async (CUsers) => {
   await utils.writeJsonData('mergedSigur1CUsers.json', mergedSigur1CUsers);
 
   // users manipulations
-  for (const CUserSigurUser of mergedSigur1CUsers) {
-    const sigurGroup = sigurGroups.filter(
-      (group) => group.NAME === CUserSigurUser.group_name,
-    );
+  // Loop through each user in the mergedSigur1CUsers array
+  for (const user of mergedSigur1CUsers) {
+    // Extract and clean up the group name by removing trailing digits
+    const groupName = user.group_name?.replace(/\/\d+/, '');
 
-    // delete user in sigur
+    // Find the matching group in the sigurGroups array
+    const matchingGroup = sigurGroups.find((group) => group.NAME === groupName);
+
+    // Case 1: The user is not a student and has a sigur_id, so update their information
     if (
-      CUserSigurUser.status !== 'Студент' &&
-      CUserSigurUser.status !== 'ВАкадемическомОтпуске' &&
-      CUserSigurUser.sigur_id
+      user.status !== 'Студент' &&
+      user.status !== 'ВАкадемическомОтпуске' &&
+      user.sigur_id
     ) {
-      // change user's name in sigur to 'student.status student.fullname'
-      if (sigurGroup) {
+      if (matchingGroup?.ID) {
         await sigur.updatePersonal(
-          CUserSigurUser.sigur_id,
-          sigurGroup.ID,
-          `${CUserSigurUser.status} ${CUserSigurUser.fullname}`,
+          user.sigur_id,
+          matchingGroup.ID,
+          `${user.status} ${user.fullname}`,
           'студент',
-          CUserSigurUser.person_id,
+          user.person_id,
         );
       }
     }
 
-    // update user in sigur
+    // Case 2: The user is a student and has a sigur_id, so check if their information needs updating
     if (
-      (CUserSigurUser.status === 'Студент' ||
-        CUserSigurUser.status === 'ВАкадемическомОтпуске') &&
-      CUserSigurUser.sigur_id &&
-      CUserSigurUser.group_name
+      (user.status === 'Студент' || user.status === 'ВАкадемическомОтпуске') &&
+      user.sigur_id
     ) {
-      // update user's fullname and parent group id
       if (
-        sigurGroup &&
-        (sigurGroup.ID !== CUserSigurUser.sigur_group_id ||
-          CUserSigurUser.fullname !== CUserSigurUser.sigur_fullname)
+        matchingGroup?.ID &&
+        (matchingGroup.ID !== user.sigur_group_id ||
+          user.fullname !== user.sigur_fullname)
       ) {
         await sigur.updatePersonal(
-          CUserSigurUser.sigur_id,
-          sigurGroup.ID,
-          CUserSigurUser.fullname,
+          user.sigur_id,
+          matchingGroup.ID,
+          user.fullname,
           'студент',
-          CUserSigurUser.person_id,
+          user.person_id,
         );
       }
     }
 
-    // create user
+    // Case 3: The user is a student without a sigur_id, so create a new entry in Sigur
     if (
-      (CUserSigurUser.status === 'Студент' ||
-        CUserSigurUser.status === 'ВАкадемическомОтпуске') &&
-      !CUserSigurUser.sigur_id &&
-      CUserSigurUser.group_name
+      (user.status === 'Студент' || user.status === 'ВАкадемическомОтпуске') &&
+      !user.sigur_id &&
+      user.group_name
     ) {
-      const CUserGroupName = CUserSigurUser.group_name.replace(/\/\d+/, '');
-
-      const foundGroupInSigur = sigurGroups.find(
-        (sigurGroup) => sigurGroup.NAME === CUserGroupName,
-      );
-      await sigur.addPersonal(
-        foundGroupInSigur.ID,
-        CUserSigurUser.fullname,
-        'студент',
-        CUserSigurUser.person_id,
-      );
+      console.log(`Sigur: Creating a new student ${user.fullname} in Sigur.`);
+      if (matchingGroup) {
+        await sigur.addPersonal(
+          matchingGroup.ID,
+          user.fullname,
+          'студент',
+          user.person_id,
+        );
+      }
     }
   }
 
-  console.log(`Total users in sigur: ${sigurStudents.length}`);
+  // Log the total number of students processed in Sigur
+  console.log(`Sigur: Total students processed in Sigur: ${sigurStudents.length}`);
 
-  const sigurUsers1CDump = sigurStudents
-    .map((el) => {
-      return {
-        ID: el.sigur_id,
-        POS: el.sigur_pos,
-        NAME: el.sigur_fullname,
-        CODEKEY: el.sigur_key,
-      };
-    })
-    .filter((el) => el.CODEKEY !== '00000000000000');
+  // Filter out users with a specific key and map their data for export
+  const sigurUsersDump = sigurStudents
+    .filter((user) => user.sigur_key !== '00000000000000')
+    .map((user) => ({
+      ID: user.sigur_id,
+      POS: user.sigur_pos,
+      NAME: user.sigur_fullname,
+      CODEKEY: user.sigur_key,
+    }));
 
-  await utils.writeToJsonBOM('personal.json', sigurUsers1CDump);
+  // Write the filtered and mapped data to a JSON file
+  console.log('Sigur: Writing user data to personal.json');
+  await utils.writeToJsonBOM('personal.json', sigurUsersDump);
+
+  // Finish the Sigur process and return the list of students
+  console.log('Sigur: Process completed.');
   sigur.finish();
   return sigurStudents;
 };
