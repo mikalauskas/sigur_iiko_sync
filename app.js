@@ -68,65 +68,82 @@ const syncSigurUsers = async (CUsers) => {
 
   // users manipulations
   // Loop through each user in the mergedSigur1CUsers array
-  for (const user of mergedSigur1CUsers) {
+  for (const cUser of mergedSigur1CUsers) {
     // Extract and clean up the group name by removing trailing digits
-    const groupName = user.group_name?.replace(/\/\d+/, '');
+    const groupName = cUser.group_name?.replace(/\/\d+/, '');
+    /* if (cUser?.fullname) {
+      let [lastName, firstName, secondName] = cUser.fullname.split(' ');
+      lastName = lastName
+        ? lastName.charAt(0).toUpperCase() + lastName.substr(1).toLowerCase()
+        : '';
+      firstName = firstName
+        ? firstName.charAt(0).toUpperCase() + firstName.substr(1).toLowerCase()
+        : '';
+      secondName = secondName
+        ? secondName.charAt(0).toUpperCase() + secondName.substr(1).toLowerCase()
+        : '';
+      cUser.fullname =
+        (lastName ? lastName : '') +
+        (firstName ? ' ' + firstName : '') +
+        (secondName ? ' ' + secondName : '');
+    } */
 
     // Find the matching group in the sigurGroups array
     const matchingGroup = sigurGroups.find((group) => group.NAME === groupName);
+    /* const matchingUser = sigurStudents.find((student) => student.NAME === cUser.fullname); */
 
-    // Case 1: The user is not a student and has a sigur_id, so update their information
+    /* // Case 1: The user is not a student and has a sigur_id, so update their information
     if (
-      user.status !== 'Студент' &&
-      user.status !== 'ВАкадемическомОтпуске' &&
-      user.sigur_id
+      cUser.status !== 'Студент' &&
+      cUser.status !== 'ВАкадемическомОтпуске' &&
+      cUser.sigur_id
     ) {
       if (matchingGroup?.ID) {
         await sigur.updatePersonal(
-          user.sigur_id,
+          cUser.sigur_id,
           matchingGroup.ID,
-          `${user.status} ${user.fullname}`,
+          `${cUser.status} ${cUser.fullname}`,
           'студент',
-          user.person_id,
+          cUser.person_id,
         );
       }
-    }
+    } */
 
-    // Case 2: The user is a student and has a sigur_id, so check if their information needs updating
+    /* // Case 2: The user is a student and has a sigur_id, so check if their information needs updating
     if (
-      (user.status === 'Студент' || user.status === 'ВАкадемическомОтпуске') &&
-      user.sigur_id
+      (cUser.status === 'Студент' || cUser.status === 'ВАкадемическомОтпуске') &&
+      cUser.sigur_id
     ) {
       if (
         matchingGroup?.ID &&
-        matchingGroup.ID !== user?.sigur_group_id &&
-        user.fullname !== user?.sigur_fullname &&
-        user.person_id !== user?.sigur_person_id &&
-        user?.sigur_pos !== 'студент'
+        matchingGroup.ID !== cUser?.sigur_group_id &&
+        cUser.fullname !== cUser?.sigur_fullname &&
+        cUser.person_id !== cUser?.sigur_person_id &&
+        cUser?.sigur_pos !== 'студент'
       ) {
         await sigur.updatePersonal(
-          user.sigur_id,
+          cUser.sigur_id,
           matchingGroup.ID,
-          user.fullname,
+          cUser.fullname,
           'студент',
-          user.person_id,
+          cUser.person_id,
         );
       }
-    }
+    } */
 
     // Case 3: The user is a student without a sigur_id, so create a new entry in Sigur
     if (
-      (user.status === 'Студент' || user.status === 'ВАкадемическомОтпуске') &&
-      !user.sigur_id &&
-      user.group_name
+      (cUser.status === 'Студент' || cUser.status === 'ВАкадемическомОтпуске') &&
+      !cUser.sigur_id &&
+      cUser.group_name
     ) {
-      console.log(`Sigur: Creating a new student ${user.fullname} in Sigur.`);
+      console.log(`Sigur: Creating a new student ${cUser.fullname} in Sigur.`);
       if (matchingGroup) {
         await sigur.addPersonal(
           matchingGroup.ID,
-          user.fullname,
+          cUser.fullname,
           'студент',
-          user.person_id,
+          cUser.person_id,
         );
       }
     }
