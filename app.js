@@ -99,8 +99,10 @@ const syncSigurUsers = async (CUsers) => {
     ) {
       if (
         matchingGroup?.ID &&
-        (matchingGroup.ID !== user.sigur_group_id ||
-          user.fullname !== user.sigur_fullname)
+        matchingGroup.ID !== user?.sigur_group_id &&
+        user.fullname !== user?.sigur_fullname &&
+        user.person_id !== user?.sigur_person_id &&
+        user?.sigur_pos !== 'студент'
       ) {
         await sigur.updatePersonal(
           user.sigur_id,
