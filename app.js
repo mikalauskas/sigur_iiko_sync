@@ -54,17 +54,15 @@ const syncSigurUsers = async (CUsers) => {
     ////
 
     // get user by fullname
-    let foundUser = JSON.parse(
+    /* let foundUser = JSON.parse(
       JSON.stringify(await sigur.getPersonal(CUser['fullname'])),
-    )[0];
+    )[0]; */
     ////
 
     // get user by person_id
-    if (!foundUser?.ID) {
-      foundUser = JSON.parse(
-        JSON.stringify(await sigur.getPersonal('', CUser['person_id'])),
-      )[0];
-    }
+    let foundUser = JSON.parse(
+      JSON.stringify(await sigur.getPersonal('', CUser['person_id'])),
+    )[0];
     ////
 
     if (foundUser?.ID) {
