@@ -12,7 +12,6 @@ dotenv.config();
 const syncSigurUsers = async (CUsers) => {
   const sigur = new Sigur();
   const sigurUsers = await sigur.getPersonal();
-  await utils.writeToJsonBOM('sigurGroups.json', sigurGroups);
 
   const sigurStudents = sigurUsers.map((el) => {
     el.NAME = el.NAME.replace(/\u00A0/g, ' ')
