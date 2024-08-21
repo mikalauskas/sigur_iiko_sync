@@ -12,7 +12,6 @@ dotenv.config();
 const syncSigurUsers = async (CUsers) => {
   const sigur = new Sigur();
   const sigurUsers = await sigur.getPersonal();
-  let sigurGroups = await sigur.getGroups();
   await utils.writeToJsonBOM('sigurGroups.json', sigurGroups);
 
   const sigurStudents = sigurUsers.map((el) => {
@@ -33,120 +32,107 @@ const syncSigurUsers = async (CUsers) => {
   });
   await utils.writeToJsonBOM('sigurStudents.json', sigurStudents);
 
-  // groups manipulations
-  const groupsToCreate = [];
+  let counter = 1;
   for (const CUser of CUsers) {
+    // create group
     if (
       CUser.group_name &&
       (CUser.status === 'Студент' || CUser.status === 'ВАкадемическомОтпуске')
     ) {
       const CUserGroupName = CUser.group_name.replace(/\/\d+/, '');
 
-      const foundGroupInSigur = sigurGroups.find(
-        (sigurGroup) => sigurGroup.NAME === CUserGroupName,
-      );
+      const foundGroup = JSON.parse(
+        JSON.stringify(await sigur.getGroup(CUserGroupName)),
+      )[0];
 
-      if (
-        !foundGroupInSigur &&
-        !groupsToCreate.find((group_name) => group_name === CUserGroupName)
-      ) {
-        groupsToCreate.push(CUserGroupName);
+      if (!foundGroup?.ID) {
+        console.log(
+          `[${counter}/${CUsers.length}] sigur: adding new group with name: ${CUserGroupName}`,
+        );
         await sigur.addGroup(CUserGroupName);
       }
     }
-  }
+    ////
 
-  sigurGroups = await sigur.getGroups();
+    // get user by fullname
+    let foundUser = JSON.parse(
+      JSON.stringify(await sigur.getPersonal(CUser['fullname'])),
+    )[0];
+    ////
 
-  const mergedSigur1CUsers = utils.mergeArraysUsingSimilarity(
-    CUsers,
-    sigurStudents,
-    'fullname',
-    'sigur_fullname',
-  );
-  await utils.writeJsonData('mergedSigur1CUsers.json', mergedSigur1CUsers);
-
-  // users manipulations
-  // Loop through each user in the mergedSigur1CUsers array
-  for (const cUser of mergedSigur1CUsers) {
-    // Extract and clean up the group name by removing trailing digits
-    const groupName = cUser.group_name?.replace(/\/\d+/, '');
-    /* if (cUser?.fullname) {
-      let [lastName, firstName, secondName] = cUser.fullname.split(' ');
-      lastName = lastName
-        ? lastName.charAt(0).toUpperCase() + lastName.substr(1).toLowerCase()
-        : '';
-      firstName = firstName
-        ? firstName.charAt(0).toUpperCase() + firstName.substr(1).toLowerCase()
-        : '';
-      secondName = secondName
-        ? secondName.charAt(0).toUpperCase() + secondName.substr(1).toLowerCase()
-        : '';
-      cUser.fullname =
-        (lastName ? lastName : '') +
-        (firstName ? ' ' + firstName : '') +
-        (secondName ? ' ' + secondName : '');
-    } */
-
-    // Find the matching group in the sigurGroups array
-    const matchingGroup = sigurGroups.find((group) => group.NAME === groupName);
-    /* const matchingUser = sigurStudents.find((student) => student.NAME === cUser.fullname); */
-
-    /* // Case 1: The user is not a student and has a sigur_id, so update their information
-    if (
-      cUser.status !== 'Студент' &&
-      cUser.status !== 'ВАкадемическомОтпуске' &&
-      cUser.sigur_id
-    ) {
-      if (matchingGroup?.ID) {
-        await sigur.updatePersonal(
-          cUser.sigur_id,
-          matchingGroup.ID,
-          `${cUser.status} ${cUser.fullname}`,
-          'студент',
-          cUser.person_id,
-        );
-      }
-    } */
-
-    /* // Case 2: The user is a student and has a sigur_id, so check if their information needs updating
-    if (
-      (cUser.status === 'Студент' || cUser.status === 'ВАкадемическомОтпуске') &&
-      cUser.sigur_id
-    ) {
-      if (
-        matchingGroup?.ID &&
-        matchingGroup.ID !== cUser?.sigur_group_id &&
-        cUser.fullname !== cUser?.sigur_fullname &&
-        cUser.person_id !== cUser?.sigur_person_id &&
-        cUser?.sigur_pos !== 'студент'
-      ) {
-        await sigur.updatePersonal(
-          cUser.sigur_id,
-          matchingGroup.ID,
-          cUser.fullname,
-          'студент',
-          cUser.person_id,
-        );
-      }
-    } */
-
-    // Case 3: The user is a student without a sigur_id, so create a new entry in Sigur
-    if (
-      (cUser.status === 'Студент' || cUser.status === 'ВАкадемическомОтпуске') &&
-      !cUser.sigur_id &&
-      cUser.group_name
-    ) {
-      console.log(`Sigur: Creating a new student ${cUser.fullname} in Sigur.`);
-      if (matchingGroup) {
-        await sigur.addPersonal(
-          matchingGroup.ID,
-          cUser.fullname,
-          'студент',
-          cUser.person_id,
-        );
-      }
+    // get user by person_id
+    if (!foundUser?.ID) {
+      foundUser = JSON.parse(
+        JSON.stringify(await sigur.getPersonal('', CUser['person_id'])),
+      )[0];
     }
+    ////
+
+    if (foundUser?.ID) {
+      // update user
+      if (
+        CUser.group_name &&
+        (CUser.status === 'Студент' || CUser.status === 'ВАкадемическомОтпуске')
+      ) {
+        const matchingGroup = JSON.parse(
+          JSON.stringify(await sigur.getGroup(CUser.group_name.replace(/\/\d+/, ''))),
+        )[0];
+
+        if (matchingGroup?.ID) {
+          await sigur.updatePersonal(
+            foundUser.ID,
+            matchingGroup.ID,
+            CUser.fullname,
+            CUser.status,
+            CUser.person_id,
+          );
+        }
+        ////
+
+        // disable user
+      } else if (
+        foundUser.POS !== CUser.status &&
+        CUser.status !== 'Студент' &&
+        CUser.status !== 'ВАкадемическомОтпуске' &&
+        !CUsers.find(
+          (user) =>
+            user.person_id === CUser.person_id &&
+            (user.status === 'Студент' || user.status === 'ВАкадемическомОтпуске'),
+        )
+      ) {
+        console.log(
+          `[${counter}/${CUsers.length}] sigur: disabling user ${CUser.fullname}`,
+        );
+
+        await sigur.disablePersonal(foundUser.ID, CUser.status);
+      } ////
+    } else {
+      // create user
+      if (
+        CUser.group_name &&
+        (CUser.status === 'Студент' || CUser.status === 'ВАкадемическомОтпуске')
+      ) {
+        console.log(
+          `[${counter}/${CUsers.length}] sigur: creating user ${CUser.fullname} in group ${CUser.group_name}`,
+        );
+
+        const matchingGroup = JSON.parse(
+          JSON.stringify(await sigur.getGroup(CUser.group_name.replace(/\/\d+/, ''))),
+        )[0];
+
+        if (matchingGroup?.ID) {
+          await sigur.addPersonal(
+            matchingGroup.ID,
+            CUser.fullname,
+            CUser.status,
+            CUser.person_id,
+          );
+        }
+      }
+      ////
+    }
+
+    counter++;
   }
 
   // Log the total number of students processed in Sigur
@@ -176,7 +162,6 @@ const syncSigurUsers = async (CUsers) => {
   console.log('app started');
   try {
     const CUsers = await create1cJsonData();
-
     await syncUmed(CUsers);
 
     const sigurUsers = await syncSigurUsers(CUsers);
