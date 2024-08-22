@@ -53,16 +53,26 @@ const syncSigurUsers = async (CUsers) => {
     }
     ////
 
-    // get user by fullname
-    /* let foundUser = JSON.parse(
+    /* // get user by fullname
+    let foundUser = JSON.parse(
       JSON.stringify(await sigur.getPersonal(CUser['fullname'])),
-    )[0]; */
+    )[0];
     ////
 
     // get user by person_id
+    if (!foundUser?.ID) {
+      let foundUser = JSON.parse(
+        JSON.stringify(await sigur.getPersonal('', CUser['person_id'])),
+      )[0];
+    }
+    //// */
+
+    // get user by person_id
+
     let foundUser = JSON.parse(
       JSON.stringify(await sigur.getPersonal('', CUser['person_id'])),
     )[0];
+
     ////
 
     if (foundUser?.ID) {
@@ -82,23 +92,26 @@ const syncSigurUsers = async (CUsers) => {
             CUser.fullname,
             CUser.status,
             CUser.person_id,
+            CUser?.phone,
           );
         }
         ////
 
         // disable user
       } else if (
-        foundUser.POS !== CUser.status &&
+        foundUser.POS !== 'Отчислен' &&
+        foundUser.POS !== 'Выпущен' &&
         CUser.status !== 'Студент' &&
         CUser.status !== 'ВАкадемическомОтпуске' &&
         !CUsers.find(
           (user) =>
             user.person_id === CUser.person_id &&
             (user.status === 'Студент' || user.status === 'ВАкадемическомОтпуске'),
-        )
+        ) &&
+        foundUser.TABID === CUser.person_id
       ) {
         console.log(
-          `[${counter}/${CUsers.length}] sigur: disabling user ${CUser.fullname}`,
+          `[${counter}/${CUsers.length}] sigur: disabling user: ${CUser.fullname} with ID: ${foundUser.ID}. Status from ${foundUser.POS} to ${CUser.status}`,
         );
 
         await sigur.disablePersonal(foundUser.ID, CUser.status);
@@ -123,6 +136,7 @@ const syncSigurUsers = async (CUsers) => {
             CUser.fullname,
             CUser.status,
             CUser.person_id,
+            CUser?.phone,
           );
         }
       }
