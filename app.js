@@ -137,7 +137,11 @@ const syncSigurUsers = async (CUsers) => {
 
   // Filter out users with a specific key and map their data for export
   const sigurUsersDump = sigurStudents
-    .filter((user) => user.sigur_key !== '00000000000000')
+    .filter(
+      (user) =>
+        user.sigur_key !== '00000000000000' &&
+        (user.sigur_pos === 'Студент' || user.sigur_pos === 'ВАкадемическомОтпуске'),
+    )
     .map((user) => ({
       ID: user.sigur_id,
       POS: user.sigur_pos,
