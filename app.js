@@ -27,6 +27,7 @@ const syncSigurUsers = async (CUsers) => {
       sigur_fullname: el.NAME,
       sigur_key: el.CODEKEY,
       sigur_person_id: el.TABID,
+      sigur_last_active: el.LOCATIONACT,
     };
   });
   await utils.writeToJsonBOM('sigurStudents.json', sigurStudents);
