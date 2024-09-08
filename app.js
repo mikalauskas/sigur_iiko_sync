@@ -176,19 +176,31 @@ const syncSigurUsers = async (CUsers) => {
 
 (async () => {
   console.log('app started');
+  const CUsers = await create1cJsonData();
+
   try {
-    const CUsers = await create1cJsonData();
     await syncUmed(CUsers);
+  } catch (e) {
+    console.error(e);
+  }
 
-    const sigurUsers = await syncSigurUsers(CUsers);
+  let sigurUsers;
+  try {
+    sigurUsers = await syncSigurUsers(CUsers);
+  } catch (e) {
+    console.error(e);
+  }
 
+  try {
     const iikoInstance = new Iiko();
     await iikoInstance.syncIiko(CUsers, sigurUsers);
+  } catch (e) {
+    console.error(e);
+  }
 
+  try {
     await syncMoodle(CUsers);
   } catch (e) {
     console.error(e);
   }
-})()
-  .then(() => console.log('app finished'))
-  .catch((e) => console.error(e));
+})().catch((e) => console.error(e));
