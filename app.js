@@ -191,12 +191,12 @@ const syncSigurUsers = async (CUsers) => {
     console.error(e);
   }
 
-  try {
+  /* try {
     const iikoInstance = new Iiko();
     await iikoInstance.syncIiko(CUsers, sigurUsers);
   } catch (e) {
     console.error(e);
-  }
+  } */
 
   try {
     await syncMoodle(CUsers);
