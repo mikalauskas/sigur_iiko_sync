@@ -5,3 +5,4 @@ node_modules
 !/package-lock.json
 /cache/
 .vscode
+iiko.csv
