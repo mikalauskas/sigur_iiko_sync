@@ -168,7 +168,7 @@ const syncSigurUsers = async (CUsers) => {
   console.log('Sigur: Writing user data to personal.json');
   await utils.writeToJsonBOM('personal.json', sigurUsersDump);
 
-  Finish the Sigur process and return the list of students
+  // Finish the Sigur process and return the list of students
   console.log('Sigur: Process completed.');
   sigur.finish();
   return sigurStudents;
