@@ -5,6 +5,7 @@ const utils = require('./lib/utils.js');
 const { syncUmed } = require('./lib/umed.js');
 const { syncMoodle } = require('./lib/moodle.js');
 const { create1cJsonData } = require('./lib/1c.js');
+const syncTeachers = require('./lib/googleSheets.js');
 
 require('log-timestamp');
 dotenv.config();
@@ -176,6 +177,13 @@ const syncSigurUsers = async (CUsers) => {
 
 (async () => {
   console.log('app started');
+
+  try {
+    await await syncTeachers();
+  } catch (e) {
+    console.error(e);
+  }
+
   const CUsers = await create1cJsonData();
 
   try {
