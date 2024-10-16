@@ -116,14 +116,10 @@ const syncSigurUsers = async (CUsers) => {
         sigKey2 = sigUser2.CODEKEY.data.every((num) => num === 0);
       }
       const isFoundUser1Deletable =
-        (sigUser1.CODEKEY === null ||
-          sigKey1 ||
-          sigUser1.LOCATIONACT < sigUser2.LOCATIONACT) &&
+        (!sigUser1.CODEKEY || sigKey1 || sigUser1.LOCATIONACT < sigUser2.LOCATIONACT) &&
         sigUser1.STATUS === 'AVAILABLE';
       const isFoundUser2Deletable =
-        (sigUser2.CODEKEY === null ||
-          sigKey2 ||
-          sigUser2.LOCATIONACT < sigUser1.LOCATIONACT) &&
+        (!sigUser2.CODEKEY || sigKey2 || sigUser2.LOCATIONACT < sigUser1.LOCATIONACT) &&
         sigUser2.STATUS === 'AVAILABLE';
 
       if (isFoundUser1Deletable) {
