@@ -47,7 +47,8 @@ const syncSigurUsers = async (CUsers) => {
     (acc, persons) => {
       persons = persons[1];
 
-      for (const person of persons) {
+      // need find
+      const valid = persons.find((person) => {
         const eduEnd = Date.parse(person.period);
         const isValid = now - eduEnd < THIRTY_DAYS_MS;
 
@@ -56,12 +57,14 @@ const syncSigurUsers = async (CUsers) => {
           person.status === 'Студент' ||
           person.status === 'ВАкадемическомОтпуске';
 
-        if (isStudentValid) {
-          acc.CStudents_valid.push(person);
-          break;
-        } else {
-          acc.CStudents_invalid.push(person);
-        }
+        if (isStudentValid) return true;
+        return false;
+      });
+
+      if (valid) {
+        acc.CStudents_valid.push(valid);
+      } else {
+        acc.CStudents_invalid.push(persons[0]);
       }
 
       return acc;
@@ -106,10 +109,14 @@ const syncSigurUsers = async (CUsers) => {
         sigUser2.CODEKEY === null && sigUser2.STATUS === 'AVAILABLE';
 
       if (isFoundUser1Deletable) {
-        sigur.deletePersonal(sigUser1.ID);
+        sigur.deletePersonal(sigUser1.ID).then(() => {
+          console.log(`sigur: deleted user`, sigUser1);
+        });
         sigUser = sigUser2;
       } else if (isFoundUser2Deletable) {
-        sigur.deletePersonal(sigUser2.ID);
+        sigur.deletePersonal(sigUser2.ID).then(() => {
+          console.log(`sigur: deleted user`, sigUser2);
+        });
         sigUser = sigUser1;
       }
     }
@@ -173,7 +180,7 @@ const syncSigurUsers = async (CUsers) => {
     const sigUser = JSON.parse(
       JSON.stringify(await sigur.getPersonal('', CUser['person_id'])),
     )[0];
-    if (sigUser?.ID && sigUser.STATUS !== CUser.status && sigUser.CODEKEY) {
+    if (sigUser?.ID && sigUser.POS !== CUser.status) {
       console.log(
         `[${counter}/${CStudents_invalid.length}] sigur: disabling user [${sigUser.ID}] ${CUser.fullname} with ID: ${sigUser.ID}. Status from ${sigUser.POS} to ${CUser.status}`,
       );
