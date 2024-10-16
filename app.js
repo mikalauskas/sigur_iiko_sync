@@ -103,10 +103,28 @@ const syncSigurUsers = async (CUsers) => {
 
     let sigUser;
     if (sigUser1?.ID && sigUser2?.ID && sigUser1.ID !== sigUser2.ID) {
+      sigUser1.LOCATIONACT = new Date(sigUser1.LOCATIONACT);
+      sigUser2.LOCATIONACT = new Date(sigUser2.LOCATIONACT);
+
+      let sigKey1;
+      if (sigUser1.CODEKEY?.data) {
+        sigKey1 = sigUser1.CODEKEY.data.every((num) => num === 0);
+      }
+
+      let sigKey2;
+      if (sigUser2.CODEKEY?.data) {
+        sigKey2 = sigUser2.CODEKEY.data.every((num) => num === 0);
+      }
       const isFoundUser1Deletable =
-        sigUser1.CODEKEY === null && sigUser1.STATUS === 'AVAILABLE';
+        (sigUser1.CODEKEY === null ||
+          sigKey1 ||
+          sigUser1.LOCATIONACT < sigUser2.LOCATIONACT) &&
+        sigUser1.STATUS === 'AVAILABLE';
       const isFoundUser2Deletable =
-        sigUser2.CODEKEY === null && sigUser2.STATUS === 'AVAILABLE';
+        (sigUser2.CODEKEY === null ||
+          sigKey2 ||
+          sigUser2.LOCATIONACT < sigUser1.LOCATIONACT) &&
+        sigUser2.STATUS === 'AVAILABLE';
 
       if (isFoundUser1Deletable) {
         sigur.deletePersonal(sigUser1.ID).then(() => {
