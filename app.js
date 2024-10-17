@@ -88,6 +88,29 @@ const syncSigurUsers = async (CUsers) => {
 
   let counter = 1;
 
+  /**
+   * Description placeholder
+   *
+   * @async
+   * @param {string} person_id
+   * @param {string} fullname
+   * @returns {Promise<Array>}
+   */
+  const sigurGetPersonal = async (person_id, fullname) => {
+    // get user by fullname
+    const sigUsers1 = await sigur.getPersonal(fullname);
+    //// get user by fullname
+
+    // get user by person_id
+    const sigUsers2 = await sigur.getPersonal('', person_id);
+    //// get user by person_id
+
+    return [...(Array.isArray(sigUsers2) ? sigUsers2 : [])].filter(
+      (item, index, self) =>
+        index === self.findIndex((i) => i.ID === item.ID) && item.STATUS === 'AVAILABLE',
+    );
+  };
+
   for (const CUser of CStudents_valid) {
     // loop
     if (!CUser?.group_name) continue;
@@ -103,98 +126,61 @@ const syncSigurUsers = async (CUsers) => {
     }
     //// create group
 
-    /* // get user by fullname
-    const sigUsers1 = await sigur.getPersonal(CUser['fullname']);
-    //// get user by fullname
- */
-    // get user by person_id
+    let sigUsers = await sigurGetPersonal(CUser['person_id'], CUser['fullname']);
 
-    //// get user by person_id
+    // Function to check if CODEKEY.data is all zeroes
+    const isAllZeroes = (arr) => arr.every((num) => num === 0);
 
-    /* const sigUsers = [
-      ...(Array.isArray(sigUsers1) ? sigUsers1 : []),
-      ...(Array.isArray(sigUsers2) ? sigUsers2 : []),
-    ]; */
+    // Main function to filter the array
+    function filterData(arr) {
+      // Step 1: Skip if the array has only one record
+      if (arr.length <= 1) return arr;
+
+      const hasValidCodeKey = (obj) =>
+        obj.CODEKEY &&
+        obj.CODEKEY.data &&
+        obj.CODEKEY.data.length > 0 &&
+        !isAllZeroes(obj.CODEKEY.data);
+
+      // Find objects with valid CODEKEYs
+      const validCodeKeys = arr.filter((obj) => hasValidCodeKey(obj));
+
+      // If only one object has a valid CODEKEY and others don't, remove that object
+      if (validCodeKeys.length === 1) {
+        return arr.filter((obj) => !hasValidCodeKey(obj)); // Remove the one with a valid CODEKEY
+      }
+
+      // If multiple objects have valid CODEKEYs, compare LOCATIONACT and remove the most recent
+      if (validCodeKeys.length > 1) {
+        validCodeKeys.sort((a, b) => new Date(b.LOCATIONACT) - new Date(a.LOCATIONACT)); // Sort by newest LOCATIONACT
+        const mostRecent = validCodeKeys[0]; // Get the most recent
+        return arr.filter((obj) => obj !== mostRecent); // Remove the most recent
+      }
+
+      return arr;
+    }
 
     /* if (sigUsers.length > 1) {
-      const { toKeep, toDelete } = sigUsers.reduce(
-        (acc, user) => {
-          user.LOCATIONACT = user.LOCATIONACT ? new Date(user.LOCATIONACT) : null;
-
-          const inKeep = acc.toKeep.find((el) => el.ID === user.ID);
-          const inDelete = acc.toDelete.find((el) => el.ID === user.ID);
-
-          user.CODEKEY?.data.find((num) => num !== 0)
-            ? (user.CODEKEY = true)
-            : (user.CODEKEY = null);
-          user.STATUS === 'AVAILABLE' && user.CODEKEY && !inKeep && !inDelete
-            ? acc.toKeep.push(user)
-            : user.STATUS === 'AVAILABLE' &&
-              !inKeep &&
-              !inDelete &&
-              acc.toDelete.push(user);
-
-          return acc;
-        },
-        { toKeep: [], toDelete: [] },
-      );
-
-      if (toDelete.length > 0) {
-        toDelete.forEach((el) => {
-          // console.log(`${el.LOCATIONACT?.toISOString()} ${el.NAME}`);
-          sigur.deletePersonal(el.ID).then(() => {
-            console.log(`sigur: deleted user`, el);
-          });
-        });
+      const filteredData = filterData(sigUsers);
+      console.log(sigUsers, filteredData);
+      if (sigUsers.length - filteredData.length === 1) {
+        for (const user of filteredData) {
+          console.log(user.NAME);
+        }
       }
-
-      // console.log(toKeep, toDelete);
+      continue;
+    } else {
+      continue;
     } */
 
-    /* if (sigUser1?.ID && sigUser2?.ID && sigUser1.ID !== sigUser2.ID) {
-      sigUser1.LOCATIONACT = new Date(sigUser1.LOCATIONACT);
-      sigUser2.LOCATIONACT = new Date(sigUser2.LOCATIONACT);
-
-      let sigKey1;
-      if (sigUser1.CODEKEY?.data) {
-        sigKey1 = sigUser1.CODEKEY.data.every((num) => num === 0);
-      }
-
-      let sigKey2;
-      if (sigUser2.CODEKEY?.data) {
-        sigKey2 = sigUser2.CODEKEY.data.every((num) => num === 0);
-      }
-      const isFoundUser1Deletable =
-        (!sigUser1.CODEKEY || sigKey1 || sigUser1.LOCATIONACT < sigUser2.LOCATIONACT) &&
-        sigUser1.STATUS === 'AVAILABLE';
-      const isFoundUser2Deletable =
-        (!sigUser2.CODEKEY || sigKey2 || sigUser2.LOCATIONACT < sigUser1.LOCATIONACT) &&
-        sigUser2.STATUS === 'AVAILABLE';
-
-      if (isFoundUser1Deletable) {
-        sigur.deletePersonal(sigUser1.ID).then(() => {
-          console.log(`sigur: deleted user`, sigUser1);
-        });
-        sigUser = sigUser2;
-      } else if (isFoundUser2Deletable) {
-        sigur.deletePersonal(sigUser2.ID).then(() => {
-          console.log(`sigur: deleted user`, sigUser2);
-        });
-        sigUser = sigUser1;
-      }
-    } */
-
-    const sigUsers = await sigur.getPersonal('', CUser['person_id']);
     let sigUser;
+    sigUsers = await sigurGetPersonal(CUser['person_id'], CUser['fullname']);
     if (Array.isArray(sigUsers) && sigUsers.length > 0) {
       sigUser = sigUsers[sigUsers.length - 1];
     }
+
     if (sigUser?.ID) {
       // update user
-
-      // console.log(
-      //   `[${counter}/${CStudents_valid.length}] sigur: updating user [${sigUser.ID}] ${CUser.fullname} in group ${CUser.group_name}`,
-      // );
 
       const sigGroup = JSON.parse(
         JSON.stringify(await sigur.getGroup(CUser.group_name.replace(/\/\d+/, ''))),
