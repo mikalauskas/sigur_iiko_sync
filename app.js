@@ -89,20 +89,56 @@ const syncSigurUsers = async (CUsers) => {
     }
     //// create group
 
-    // get user by fullname
-    const sigUser1 = JSON.parse(
-      JSON.stringify(await sigur.getPersonal(CUser['fullname'])),
-    )[0];
+    /* // get user by fullname
+    const sigUsers1 = await sigur.getPersonal(CUser['fullname']);
     //// get user by fullname
-
+ */
     // get user by person_id
-    const sigUser2 = JSON.parse(
-      JSON.stringify(await sigur.getPersonal('', CUser['person_id'])),
-    )[0];
+    const sigUsers2 = await sigur.getPersonal('', CUser['person_id']);
+
     //// get user by person_id
 
-    let sigUser;
-    if (sigUser1?.ID && sigUser2?.ID && sigUser1.ID !== sigUser2.ID) {
+    /* const sigUsers = [
+      ...(Array.isArray(sigUsers1) ? sigUsers1 : []),
+      ...(Array.isArray(sigUsers2) ? sigUsers2 : []),
+    ]; */
+
+    /* if (sigUsers.length > 1) {
+      const { toKeep, toDelete } = sigUsers.reduce(
+        (acc, user) => {
+          user.LOCATIONACT = user.LOCATIONACT ? new Date(user.LOCATIONACT) : null;
+
+          const inKeep = acc.toKeep.find((el) => el.ID === user.ID);
+          const inDelete = acc.toDelete.find((el) => el.ID === user.ID);
+
+          user.CODEKEY?.data.find((num) => num !== 0)
+            ? (user.CODEKEY = true)
+            : (user.CODEKEY = null);
+          user.STATUS === 'AVAILABLE' && user.CODEKEY && !inKeep && !inDelete
+            ? acc.toKeep.push(user)
+            : user.STATUS === 'AVAILABLE' &&
+              !inKeep &&
+              !inDelete &&
+              acc.toDelete.push(user);
+
+          return acc;
+        },
+        { toKeep: [], toDelete: [] },
+      );
+
+      if (toDelete.length > 0) {
+        toDelete.forEach((el) => {
+          // console.log(`${el.LOCATIONACT?.toISOString()} ${el.NAME}`);
+          sigur.deletePersonal(el.ID).then(() => {
+            console.log(`sigur: deleted user`, el);
+          });
+        });
+      }
+
+      // console.log(toKeep, toDelete);
+    } */
+
+    /* if (sigUser1?.ID && sigUser2?.ID && sigUser1.ID !== sigUser2.ID) {
       sigUser1.LOCATIONACT = new Date(sigUser1.LOCATIONACT);
       sigUser2.LOCATIONACT = new Date(sigUser2.LOCATIONACT);
 
@@ -133,14 +169,12 @@ const syncSigurUsers = async (CUsers) => {
         });
         sigUser = sigUser1;
       }
-    }
+    } */
 
-    if (!sigUser?.ID) {
-      sigUser = JSON.parse(
-        JSON.stringify(await sigur.getPersonal('', CUser['person_id'])),
-      )[0];
+    let sigUser;
+    if (Array.isArray(sigUsers2) && sigUsers2.length > 0) {
+      sigUser = sigUsers2[sigUsers2.length - 1];
     }
-
     if (sigUser?.ID) {
       // update user
 
@@ -191,9 +225,13 @@ const syncSigurUsers = async (CUsers) => {
   counter = 1;
   for (const CUser of CStudents_invalid) {
     // loop
-    const sigUser = JSON.parse(
-      JSON.stringify(await sigur.getPersonal('', CUser['person_id'])),
-    )[0];
+    const sigUsers = await sigur.getPersonal('', CUser['person_id']);
+
+    let sigUser;
+    if (Array.isArray(sigUsers) && sigUsers.length > 0) {
+      sigUser = sigUsers[sigUsers.length - 1];
+    }
+
     if (sigUser?.ID && sigUser.POS !== CUser.status) {
       console.log(
         `[${counter}/${CStudents_invalid.length}] sigur: disabling user [${sigUser.ID}] ${CUser.fullname} with ID: ${sigUser.ID}. Status from ${sigUser.POS} to ${CUser.status}`,
