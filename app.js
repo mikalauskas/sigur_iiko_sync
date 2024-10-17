@@ -33,6 +33,20 @@ const syncSigurUsers = async (CUsers) => {
   });
   await utils.writeToJsonBOM('sigurStudents.json', sigurStudents);
 
+  const sigurUsersDump = sigurStudents
+    .filter(
+      (user) =>
+        user.sigur_key !== '00000000000000' &&
+        (user.sigur_pos === 'Студент' || user.sigur_pos === 'ВАкадемическомОтпуске'),
+    )
+    .map((user) => ({
+      ID: user.sigur_id,
+      POS: user.sigur_pos,
+      NAME: user.sigur_fullname,
+      CODEKEY: user.sigur_key,
+    }));
+  await utils.writeToJsonBOM('personal.json', sigurUsersDump);
+
   CUsers = utils.groupArrayByKey(CUsers, 'person_id');
 
   const now = Date.now();
@@ -94,7 +108,6 @@ const syncSigurUsers = async (CUsers) => {
     //// get user by fullname
  */
     // get user by person_id
-    const sigUsers2 = await sigur.getPersonal('', CUser['person_id']);
 
     //// get user by person_id
 
@@ -171,9 +184,10 @@ const syncSigurUsers = async (CUsers) => {
       }
     } */
 
+    const sigUsers = await sigur.getPersonal('', CUser['person_id']);
     let sigUser;
-    if (Array.isArray(sigUsers2) && sigUsers2.length > 0) {
-      sigUser = sigUsers2[sigUsers2.length - 1];
+    if (Array.isArray(sigUsers) && sigUsers.length > 0) {
+      sigUser = sigUsers[sigUsers.length - 1];
     }
     if (sigUser?.ID) {
       // update user
@@ -243,28 +257,8 @@ const syncSigurUsers = async (CUsers) => {
     //// loop
   }
 
-  // Log the total number of students processed in Sigur
   console.log(`Sigur: Total students processed in Sigur: ${sigurStudents.length}`);
 
-  // Filter out users with a specific key and map their data for export
-  const sigurUsersDump = sigurStudents
-    .filter(
-      (user) =>
-        user.sigur_key !== '00000000000000' &&
-        (user.sigur_pos === 'Студент' || user.sigur_pos === 'ВАкадемическомОтпуске'),
-    )
-    .map((user) => ({
-      ID: user.sigur_id,
-      POS: user.sigur_pos,
-      NAME: user.sigur_fullname,
-      CODEKEY: user.sigur_key,
-    }));
-
-  // Write the filtered and mapped data to a JSON file
-  console.log('Sigur: Writing user data to personal.json');
-  await utils.writeToJsonBOM('personal.json', sigurUsersDump);
-
-  // Finish the Sigur process and return the list of students
   console.log('Sigur: Process completed.');
   sigur.finish();
   return sigurStudents;
