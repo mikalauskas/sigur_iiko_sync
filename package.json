@@ -4,7 +4,10 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "google": "node app.js google",
+    "umed": "node app.js umed",
+    "sigur_iiko": "node app.js sigur_iiko",
+    "moodle": "node app.js moodle"
   },
   "keywords": [],
   "author": "",

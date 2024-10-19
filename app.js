@@ -250,39 +250,61 @@ const syncSigurUsers = async (CUsers) => {
   return sigurStudents;
 };
 
-(async () => {
-  console.log('app started');
+if (process.argv[2] && process.argv[2] === 'google') {
+  (async () => {
+    console.log('google started');
+    try {
+      await await syncTeachers();
+    } catch (e) {
+      console.error(e);
+    }
+  })().catch((e) => console.error(e));
+}
 
-  const CUsers = await create1cJsonData();
+if (process.argv[2] && process.argv[2] === 'umed') {
+  (async () => {
+    console.log('umed started');
+    const CUsers = await create1cJsonData();
 
-  try {
-    await await syncTeachers();
-  } catch (e) {
-    console.error(e);
-  }
+    try {
+      await syncUmed(CUsers);
+    } catch (e) {
+      console.error(e);
+    }
+  })().catch((e) => console.error(e));
+}
 
-  try {
-    await syncUmed(CUsers);
-  } catch (e) {
-    console.error(e);
-  }
+if (process.argv[2] && process.argv[2] === 'sigur_iiko') {
+  (async () => {
+    console.log('sigur started');
 
-  let sigurUsers;
-  try {
-    sigurUsers = await syncSigurUsers(CUsers);
-  } catch (e) {
-    console.error(e);
-  }
+    const CUsers = await create1cJsonData();
 
-  try {
-    syncIiko(CUsers, sigurUsers);
-  } catch (e) {
-    console.error(e);
-  }
+    let sigurUsers;
+    try {
+      sigurUsers = await syncSigurUsers(CUsers);
+    } catch (e) {
+      console.error(e);
+    }
 
-  try {
-    await syncMoodle(CUsers);
-  } catch (e) {
-    console.error(e);
-  }
-})().catch((e) => console.error(e));
+    try {
+      syncIiko(CUsers, sigurUsers);
+    } catch (e) {
+      console.error(e);
+    }
+  })().catch((e) => console.error(e));
+}
+
+if (process.argv[2] && process.argv[2] === 'moodle') {
+  (async () => {
+    console.log('moodle started');
+
+    const CUsers = await create1cJsonData();
+
+    try {
+      await syncMoodle(CUsers);
+    } catch (e) {
+      console.error(e);
+    }
+  })().catch((e) => console.error(e));
+}
