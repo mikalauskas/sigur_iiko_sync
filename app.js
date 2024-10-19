@@ -19,7 +19,13 @@ const syncSigurUsers = async (CUsers) => {
       .replace(/\s+/g, ' ')
       .trim();
     el.NAME = utils.titleCase(el.NAME);
-    el.CODEKEY = utils.buf2hex(el.CODEKEY).slice(-8).toUpperCase().padStart(14, '0');
+    if (el.CODEKEY?.data) {
+      el.CODEKEY = utils
+        .buf2hex(Buffer.from(el.CODEKEY.data))
+        .slice(-8)
+        .toUpperCase()
+        .padStart(14, '0');
+    }
 
     return {
       sigur_id: el.ID,
@@ -36,6 +42,7 @@ const syncSigurUsers = async (CUsers) => {
   const sigurUsersDump = sigurStudents
     .filter(
       (user) =>
+        user.sigur_key &&
         user.sigur_key !== '00000000000000' &&
         (user.sigur_pos === 'Студент' || user.sigur_pos === 'ВАкадемическомОтпуске'),
     )
