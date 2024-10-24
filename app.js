@@ -83,8 +83,10 @@ const syncSigurUsers = async (CUsers) => {
       });
 
       if (valid) {
+        // @ts-ignore
         acc.CStudents_valid.push(valid);
       } else {
+        // @ts-ignore
         acc.CStudents_invalid.push(persons[0]);
       }
 
@@ -159,6 +161,7 @@ const syncSigurUsers = async (CUsers) => {
 
       // If multiple objects have valid CODEKEYs, compare LOCATIONACT and remove the most recent
       if (validCodeKeys.length > 1) {
+        // @ts-ignore
         validCodeKeys.sort((a, b) => new Date(b.LOCATIONACT) - new Date(a.LOCATIONACT)); // Sort by newest LOCATIONACT
         const mostRecent = validCodeKeys[0]; // Get the most recent
         return arr.filter((obj) => obj !== mostRecent); // Remove the most recent
