@@ -15,10 +15,8 @@ const syncSigurUsers = async (CUsers) => {
   const sigurUsers = await sigur.getPersonal();
 
   const sigurStudents = sigurUsers.map((el) => {
-    el.NAME = el.NAME.replace(/\u00A0/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    el.NAME = utils.titleCase(el.NAME);
+    el.NAME = el.NAME.replace(/\u00A0/g, ' ');
+    el.NAME = utils.sanitizeFullName(el.NAME);
     if (el.CODEKEY?.data) {
       el.CODEKEY = utils
         .buf2hex(Buffer.from(el.CODEKEY.data))
