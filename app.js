@@ -105,7 +105,7 @@ const syncSigurUsers = async (CUsers) => {
    */
   const sigurGetPersonal = async (person_id, fullname) => {
     // get user by fullname
-    const sigUsers1 = await sigur.getPersonal(fullname);
+    // const sigUsers1 = await sigur.getPersonal(fullname);
     //// get user by fullname
 
     // get user by person_id
